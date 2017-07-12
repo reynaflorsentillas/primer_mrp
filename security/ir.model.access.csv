@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_primer_mrp_mrp_repair_status_all,primer_mrp.mrp_repair.status.all,model_mrp_repair_status,,1,0,0,0
+access_primer_mrp_mrp_repair_status_manager,primer_mrp.mrp_repair.status.manager,model_mrp_repair_status,stock.group_stock_manager,1,1,1,1
+access_primer_mrp_mrp_repair_status_user,primer_mrp.mrp_repair.status.user,model_mrp_repair_status,stock.group_stock_user,1,1,1,0
+access_primer_mrp_mrp_repair_routing_all,primer_mrp.mrp_repair.routing.all,model_mrp_repair_routing,,1,0,0,0
+access_primer_mrp_mrp_repair_routing_manager,primer_mrp.mrp_repair.routing.manager,model_mrp_repair_routing,stock.group_stock_manager,1,1,1,1
+access_primer_mrp_mrp_repair_routing_user,primer_mrp.mrp_repair.routing.user,model_mrp_repair_routing,stock.group_stock_user,1,1,1,0

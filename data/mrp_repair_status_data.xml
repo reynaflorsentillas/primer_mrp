@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2016 LasLabs Inc.
+     License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl). -->
+
+<odoo noupdate="1">
+
+    <record model="mrp.repair.status" id="status1">
+        <field name="name">In Transit to Warehouse</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status2">
+        <field name="name">Repaired Item Received</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status3">
+        <field name="name">Claimed</field>
+    </record>
+    
+    <record model="mrp.repair.status" id="status4">
+        <field name="name">Backjob : For Return to Warehouse</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status5">
+        <field name="name">For Repair</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status6">
+        <field name="name">Awaiting Customer Feedback</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status7">
+        <field name="name">Waiting for Spare Parts</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status8">
+        <field name="name">Endorsed to Brand for Final Assessment</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status9">
+        <field name="name">Approved for Replacement</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status10">
+        <field name="name">Disapproved : Airline Certificate Issued</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status11">
+        <field name="name">Disapproved : Discount Issued</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status12">
+        <field name="name">Repaired : For Delivery Back to Store</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status13">
+        <field name="name">Cancelled : Spare Part(s) Unavailable</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status14">
+        <field name="name">Cancelled : Irreparable</field>
+    </record>
+
+    <record model="mrp.repair.status" id="status15">
+        <field name="name">Cancelled : Customer Preference</field>
+    </record>
+
+
+</odoo>

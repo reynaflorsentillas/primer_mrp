@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2016 LasLabs Inc.
+     License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl). -->
+
+<odoo noupdate="1">
+
+    <record model="mrp.repair.routing" id="route1">
+        <field name="name">Central Warehouse</field>
+        <field name="route">central</field>
+    </record>
+
+    <record model="mrp.repair.routing" id="route2">
+        <field name="name">3rd Party Vendor</field>
+        <field name="route">thirdparty</field>
+    </record>
+
+    <record model="mrp.repair.routing" id="route3">
+        <field name="name">Customer</field>
+        <field name="route">customer</field>
+    </record>
+</odoo>
