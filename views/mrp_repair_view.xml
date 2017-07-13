@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+        <!-- EXTEND REPAIR TREE -->
+        <record id="primer_view_repair_order_tree" model="ir.ui.view">
+            <field name="name">primer.mrp.repair.tree</field>
+            <field name="model">mrp.repair</field>
+            <field name="inherit_id" ref="mrp_repair.view_repair_order_tree" />
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='guarantee_limit']" position="replace">
+                    <field name="valid_warranty" />
+                </xpath>
+
+            </field>
+        </record>
+
+        <!-- EXTEND REPAIR FORM -->
         <record id="primer_view_repair_order_form" model="ir.ui.view">
             <field name="name">primer.mrp.repair.form</field>
             <field name="model">mrp.repair</field>
@@ -12,7 +26,9 @@
                 </xpath>
 
                 <xpath expr="//field[@name='product_id']" position="attributes">
-                    <attribute name="string">Repair Item</attribute>
+                    <!--<attribute name="string">Repair Item</attribute>-->
+                    <attribute name="domain">[('type', 'in', ['product', 'consu']),('categ_id.name', 'in', ['Luggages', 'Bags']),('tracking', '=', 'serial')]</attribute>
+                    <!--<attribute name="readonly">[('lot_id', '!=', [])]</attribute>-->
                 </xpath>
 
                 <xpath expr="//form/sheet/group/group/label[1]" position="attributes">
@@ -40,10 +56,6 @@
                     <attribute name="attrs">{'readonly':[('state', '=', 'done')],'required':[('invoice_method','!=','none')]}</attribute>
                 </xpath>
 
-                <!--<xpath expr="//field[@name='sale_team_id']" position="attributes">
-                    <attribute name="string">TTC Store</attribute>
-                </xpath>-->
-
                 <xpath expr="//field[@name='guarantee_limit']" position="replace">
                     <field name="valid_warranty" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
                     <field name="status" />
@@ -61,6 +73,7 @@
                     </page>
                 </notebook>
 
+                <!-- REPAIR OPERATION LINES-->
                 <xpath expr="//form/sheet/notebook/page[1]" position="attributes">
                     <attribute name="string">Repair Costs</attribute>
                 </xpath>
@@ -73,12 +86,20 @@
                     <attribute name="string">Repair Costs</attribute>
                 </xpath>
 
+                <xpath expr="//field[@name='operations']/tree//field[@name='product_id']" position="attributes">
+                    <attribute name="domain">[('categ_id.name', 'in', ['Spare Part', 'Service'])]</attribute>
+                </xpath>
+
                 <xpath expr="//field[@name='operations']/tree//field[@name='type']" position="attributes">
                     <attribute name="invisible">1</attribute>
                 </xpath>
 
                 <xpath expr="//field[@name='operations']/tree//field[@name='lot_id']" position="attributes">
                     <attribute name="invisible">1</attribute>
+                </xpath>
+
+                <xpath expr="//field[@name='operations']/tree//field[@name='location_id']" position="after">
+                    <field name="qty_on_hand" />
                 </xpath>
 
                 <xpath expr="//field[@name='operations']/tree//field[@name='location_dest_id']" position="attributes">
@@ -99,6 +120,26 @@
                 
             </field>
         </record>
+
+
+        <!-- EXTEND REPAIR FORM 2 (Primer Security Module) -->
+        <record id="primer_view_repair_order_form2" model="ir.ui.view">
+            <field name="name">primer.mrp.repair.form2</field>
+            <field name="model">mrp.repair</field>
+            <field name="inherit_id" ref="primer_extend_security_access.primer_mrp_repair_form_extend" />
+            <field name="arch" type="xml">
+
+                <xpath expr="//field[@name='sale_team_id']" position="after">
+                    <field name="repair_tech" context="{'repair_tech': True}" />
+                </xpath>
+
+                <xpath expr="//field[@name='sale_team_id']" position="attributes">
+                    <attribute name="string">TTC Store</attribute>
+                </xpath>
+
+            </field>
+        </record>
+
 
         <record id="primer_view_repair_routing_form" model="ir.ui.view">
             <field name="name">primer.mrp.repair.routing.form</field>

@@ -15,6 +15,11 @@ class PrimerRepair(models.Model):
             return warehouse.lot_stock_id.id
         return False
 
+    @api.model
+    def _filter_repair_tech(self):
+        job_id = self.env['hr.job'].search([('name', '=', 'Repair Tech')])
+        return [('job_id', '=', job_id.id)]
+
     # NEW FIELDS
     valid_warranty = fields.Selection([('yes','Yes'),('no','No')], string='Valid Warranty?', required=True, default='no')
     routing = fields.Many2one('mrp.repair.routing', string='Routing')
@@ -22,8 +27,11 @@ class PrimerRepair(models.Model):
     status_history = fields.Text('Status History')
     is_in_customer = fields.Boolean(string="Delivered to Customer", compute='_compute_customer_location')
     date_promised = fields.Datetime(string='Promised Date')
+    repair_tech = fields.Many2one('hr.employee', 'Repair Tech', domain=_filter_repair_tech)
+    # repair_tech = fields.Many2one('hr.employee', 'Repair Tech')
     
     # OVERRIDE FIELDS
+    product_id = fields.Many2one(string='Repair Item')
     invoice_method = fields.Selection(default='after_repair')
     location_id = fields.Many2one(default=_new_default_stock_location)
 
@@ -113,19 +121,33 @@ class PrimerRepair(models.Model):
     def write(self, values):
         update_user = self.env.user.login
         update_date = time.strftime('%m/%d/%y %H:%M:%S')
+        current_status_history = self.status_history 
+        new_status_history = ''
         
-        # STATUS HISTORY
+        # STATUS
         if values.get('status'):
             current_status_id = values.get('status')
             update_status = self.env['mrp.repair.status'].browse(current_status_id)
-            current_status_history = self.status_history 
+            # current_status_history = self.status_history 
 
             if update_status:
-                if current_status_history:
-                    values['status_history'] = update_user + ' ' + update_date + ' - ' + update_status.name + '\n' + current_status_history
-                else:
-                    current_status_history = '\n'
-                    values['status_history'] = update_user + ' ' + update_date + ' - ' + update_status.name + current_status_history
+                new_status_history += update_user + ' ' + update_date + ' - ' + update_status.name + '\n'
+
+        if values.get('repair_tech'):
+            repair_tech = values.get('repair_tech')
+            repair_tech_emp = self.env['hr.employee'].search([('id', '=', repair_tech)])
+            new_status_history += update_user + ' ' + update_date + ' - ' + 'Repair Tech Assigned: ' + repair_tech_emp.name + '\n'
+        
+        # DATE PROMISED
+        if values.get('date_promised'):
+            new_status_history += update_user + ' ' + update_date + ' - ' + 'Promise date committed.' + '\n'
+
+        #  STATUS LOG 
+        if current_status_history:
+            values['status_history'] = new_status_history + current_status_history
+        else:
+            current_status_history = '\n'
+            values['status_history'] = new_status_history + current_status_history
 
         # ROUTING
         if values.get('routing'):
@@ -210,6 +232,10 @@ class PrimerRepair(models.Model):
 class PrimerRepairLine(models.Model):
     _inherit = 'mrp.repair.line'
 
+    # NEW FIELDS
+    qty_on_hand = fields.Float(string='Quantity on Hand', readonly=True, store=True)
+
+    # OVERRIDE FIELDS
     type = fields.Selection(default='add')
 
     @api.onchange('type', 'repair_id')

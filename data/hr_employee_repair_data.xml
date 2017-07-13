@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2016 LasLabs Inc.
+     License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl). -->
+
+<odoo noupdate="1">
+
+    <record model="hr.employee" id="repairman1">
+        <field name="name">Clemente Arellano</field>
+        <field name="job_id" ref="repairtech" />
+    </record>
+
+    <record model="hr.employee" id="repairman2">
+        <field name="name">Ernesto Javier</field>
+        <field name="job_id" ref="repairtech" />
+    </record>
+    
+    <record model="hr.employee" id="repairman3">
+        <field name="name">Renato Javier</field>
+        <field name="job_id" ref="repairtech" />
+    </record>
+
+    <record model="hr.employee" id="repairman4">
+        <field name="name">Jose Gajo</field>
+        <field name="job_id" ref="repairtech" />
+    </record>
+</odoo>

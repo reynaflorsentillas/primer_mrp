@@ -24,13 +24,15 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'mrp_repair', 'stock'],
+    'depends': ['base', 'mrp_repair', 'stock', 'primer_extend_security_access'],
 
     # always loaded
     'data': [
         'security/ir.model.access.csv',
         # 'views/views.xml',
         # 'views/templates.xml',
+        'data/hr_job_data.xml',
+        'data/hr_employee_repair_data.xml',
         'data/mrp_repair_routing_data.xml',
         'data/mrp_repair_status_data.xml',
         'views/mrp_repair_view.xml',
