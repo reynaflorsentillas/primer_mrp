@@ -93,7 +93,8 @@
                             <field name="total_outsourced_wait_time" />
                             <field name="performance_time" />
                             <field name="store_disp_reaction_time" />
-                            <field name="store_custret_reaction_time" />
+                            <field name="store_custret_reaction_time_outsorced" />
+                            <field name="store_custret_reaction_time_instore" />
                         </group>
                     </page>
                 </notebook>

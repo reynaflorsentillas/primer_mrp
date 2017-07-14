@@ -36,7 +36,7 @@ class PrimerRepair(models.Model):
     # RO Dates
     ro_confirmed_date = fields.Datetime(string='Confirmed Date', readonly=True)
     ro_started_date = fields.Datetime(string='Started Date', readonly=True)
-    ro_ended_date = fields.Datetime(string='Ended Date')
+    ro_ended_date = fields.Datetime(string='Ended Date', readonly=True)
     ro_promised_date = fields.Datetime(string='Promised Date')
     # RI Dates
     ri_recd_from_cust_date = fields.Datetime(string='Received from Customer')
@@ -52,7 +52,8 @@ class PrimerRepair(models.Model):
     total_outsourced_wait_time = fields.Datetime(string='Total Outsourced Wait Time')
     performance_time = fields.Datetime(string='Performance Time')
     store_disp_reaction_time = fields.Datetime(string='Store Dispatch Reaction Time')
-    store_custret_reaction_time = fields.Datetime(string='Store Customer Return Reaction Time')
+    store_custret_reaction_time_outsorced = fields.Datetime(string='Store Customer Return Reaction Time: Outsourced')
+    store_custret_reaction_time_instore = fields.Datetime(string='Store Customer Return Reaction Time: In-Store')
     
     # OVERRIDE FIELDS
     product_id = fields.Many2one(string='Repair Item')
@@ -75,7 +76,6 @@ class PrimerRepair(models.Model):
     @api.multi
     @api.depends('location_id')
     def _compute_customer_location(self):
-        _logger.info('NICE!')
         location_ids = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
         for record in self:
             if record.location_id.id == location_ids.id:
@@ -124,27 +124,12 @@ class PrimerRepair(models.Model):
 
     @api.multi
     def action_repair_confirm(self):
-        """ Repair order state is set to 'To be invoiced' when invoice method
-        is 'Before repair' else state becomes 'Confirmed'.
-        @param *arg: Arguments
-        @return: True
-        """
-        if self.filtered(lambda repair: repair.state != 'draft'):
-            raise UserError(_("Can only confirm draft repairs."))
-        before_repair = self.filtered(lambda repair: repair.invoice_method == 'b4repair')
-        before_repair.write({'state': '2binvoiced'})
-        to_confirm = self - before_repair
-        to_confirm_operations = to_confirm.mapped('operations')
-        for operation in to_confirm_operations:
-            if operation.product_id.tracking != 'none' and not operation.lot_id:
-                raise UserError(_("Serial number is required for operation line with product '%s'") % (operation.product_id.name))
-        to_confirm_operations.write({'state': 'confirmed'})
-
-        confirm_date = time.strftime('%m/%d/%y %H:%M:%S')
-
-        to_confirm.write({'state': 'confirmed','ro_confirmed_date': confirm_date})
-        # CREATE TRANSFER ORDER UPON CONFIRMATION OF REPAIR
-        self.create_transfer_order() 
+        super(PrimerRepair, self).action_repair_confirm()
+        for repair in self:
+            confirm_date = time.strftime('%m/%d/%y %H:%M:%S')
+            repair.write({'ro_confirmed_date': confirm_date})
+            # CREATE TRANSFER ORDER UPON CONFIRMATION OF REPAIR
+            self.create_transfer_order() 
         return True
 
     def create_transfer_order(self):
@@ -175,34 +160,16 @@ class PrimerRepair(models.Model):
 
     @api.multi
     def action_repair_start(self):
-        """ Writes repair order state to 'Under Repair'
-        @return: True
-        """
-        if self.filtered(lambda repair: repair.state not in ['confirmed', 'ready']):
-            raise UserError(_("Repair must be confirmed before starting reparation."))
-        self.mapped('operations').write({'state': 'confirmed'})
-
+        super(PrimerRepair, self).action_repair_start()
         start_date = time.strftime('%m/%d/%y %H:%M:%S')
-
-        return self.write({'state': 'under_repair','ro_started_date': start_date})
+        return self.write({'ro_started_date': start_date})
 
     @api.multi
     def action_repair_end(self):
-        """ Writes repair order state to 'To be invoiced' if invoice method is
-        After repair else state is set to 'Ready'.
-        @return: True
-        """
-        if self.filtered(lambda repair: repair.state != 'under_repair'):
-            raise UserError(_("Repair must be under repair in order to end reparation."))
+        super(PrimerRepair, self).action_repair_end()
         for repair in self:
-            repair.write({'repaired': True})
-            vals = {'state': 'done'}
-            vals['move_id'] = repair.action_repair_done().get(repair.id)
-            if not repair.invoiced and repair.invoice_method == 'after_repair':
-                vals['state'] = '2binvoiced'
             end_date = time.strftime('%m/%d/%y %H:%M:%S')
-            vals['ro_ended_date'] = end_date
-            repair.write(vals)
+            repair.write({'ro_ended_date': end_date})
         return True
     
     @api.multi
