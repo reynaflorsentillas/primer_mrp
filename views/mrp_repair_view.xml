@@ -77,7 +77,6 @@
                             <field name="ro_confirmed_date" />
                             <field name="ro_started_date" />
                             <field name="ro_ended_date" />
-                            <field name="ro_promised_date" />
                         </group>
                         <group string="RI (Repair Item) Dates">
                             <field name="ri_recd_from_cust_date" />

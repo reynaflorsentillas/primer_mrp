@@ -34,8 +34,8 @@ class PrimerRepair(models.Model):
         ('exstore', 'Ex-Store')
     ], string='Repair Location')
     # RO Dates
-    ro_confirmed_date = fields.Datetime(string='Confirmed Date')
-    ro_started_date = fields.Datetime(string='Started Date')
+    ro_confirmed_date = fields.Datetime(string='Confirmed Date', readonly=True)
+    ro_started_date = fields.Datetime(string='Started Date', readonly=True)
     ro_ended_date = fields.Datetime(string='Ended Date')
     ro_promised_date = fields.Datetime(string='Promised Date')
     # RI Dates
@@ -108,7 +108,7 @@ class PrimerRepair(models.Model):
             new_status_history += update_user + ' ' + update_date + ' - ' + 'Repair Tech Assigned: ' + repair_tech_emp.name + '\n'
         
         # DATE PROMISED
-        if values.get('date_promised'):
+        if values.get('ro_promised_date'):
             new_status_history += update_user + ' ' + update_date + ' - ' + 'Promise date committed.' + '\n'
 
         #  STATUS LOG 
@@ -139,7 +139,10 @@ class PrimerRepair(models.Model):
             if operation.product_id.tracking != 'none' and not operation.lot_id:
                 raise UserError(_("Serial number is required for operation line with product '%s'") % (operation.product_id.name))
         to_confirm_operations.write({'state': 'confirmed'})
-        to_confirm.write({'state': 'confirmed'})
+
+        confirm_date = time.strftime('%m/%d/%y %H:%M:%S')
+
+        to_confirm.write({'state': 'confirmed','ro_confirmed_date': confirm_date})
         # CREATE TRANSFER ORDER UPON CONFIRMATION OF REPAIR
         self.create_transfer_order() 
         return True
@@ -169,6 +172,38 @@ class PrimerRepair(models.Model):
                 'name': name,
             })]
         })
+
+    @api.multi
+    def action_repair_start(self):
+        """ Writes repair order state to 'Under Repair'
+        @return: True
+        """
+        if self.filtered(lambda repair: repair.state not in ['confirmed', 'ready']):
+            raise UserError(_("Repair must be confirmed before starting reparation."))
+        self.mapped('operations').write({'state': 'confirmed'})
+
+        start_date = time.strftime('%m/%d/%y %H:%M:%S')
+
+        return self.write({'state': 'under_repair','ro_started_date': start_date})
+
+    @api.multi
+    def action_repair_end(self):
+        """ Writes repair order state to 'To be invoiced' if invoice method is
+        After repair else state is set to 'Ready'.
+        @return: True
+        """
+        if self.filtered(lambda repair: repair.state != 'under_repair'):
+            raise UserError(_("Repair must be under repair in order to end reparation."))
+        for repair in self:
+            repair.write({'repaired': True})
+            vals = {'state': 'done'}
+            vals['move_id'] = repair.action_repair_done().get(repair.id)
+            if not repair.invoiced and repair.invoice_method == 'after_repair':
+                vals['state'] = '2binvoiced'
+            end_date = time.strftime('%m/%d/%y %H:%M:%S')
+            vals['ro_ended_date'] = end_date
+            repair.write(vals)
+        return True
     
     @api.multi
     def write(self, values):
@@ -191,7 +226,7 @@ class PrimerRepair(models.Model):
             new_status_history += update_user + ' ' + update_date + ' - ' + 'Repair Tech Assigned: ' + repair_tech_emp.name + '\n'
         
         # DATE PROMISED
-        if values.get('date_promised'):
+        if values.get('ro_promised_date'):
             new_status_history += update_user + ' ' + update_date + ' - ' + 'Promise date committed.' + '\n'
 
         #  STATUS LOG 
