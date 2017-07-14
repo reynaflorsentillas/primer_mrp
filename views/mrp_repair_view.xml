@@ -59,7 +59,8 @@
                 <xpath expr="//field[@name='guarantee_limit']" position="replace">
                     <field name="valid_warranty" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
                     <field name="status" />
-                    <field name="date_promised" />
+                    <field name="ro_promised_date" />
+                    <field name="repair_locn" />
                 </xpath>
 
                 <xpath expr="//field[@name='location_dest_id']" position="after">
@@ -70,6 +71,31 @@
                 <notebook position="inside">
                     <page string="Status Log">
                         <field name="status_history" readonly="1" />
+                    </page>
+                    <page string="Statistics">
+                        <group string="RO (Repair Order) Dates">
+                            <field name="ro_confirmed_date" />
+                            <field name="ro_started_date" />
+                            <field name="ro_ended_date" />
+                            <field name="ro_promised_date" />
+                        </group>
+                        <group string="RI (Repair Item) Dates">
+                            <field name="ri_recd_from_cust_date" />
+                            <field name="ri_sent_out_date" />
+                            <field name="ri_recd_out_date" />
+                            <field name="ri_sent_back_date" />
+                            <field name="ri_recd_back_date" />
+                            <field name="ri_ret_to_cust_date" />
+                        </group>
+                        <group string="Calculated Elapsed Times">
+                            <field name="total_system_time" />
+                            <field name="total_outsourced_time" />
+                            <field name="total_outsourced_service_time" />
+                            <field name="total_outsourced_wait_time" />
+                            <field name="performance_time" />
+                            <field name="store_disp_reaction_time" />
+                            <field name="store_custret_reaction_time" />
+                        </group>
                     </page>
                 </notebook>
 

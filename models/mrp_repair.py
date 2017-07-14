@@ -26,9 +26,33 @@ class PrimerRepair(models.Model):
     status = fields.Many2one('mrp.repair.status', 'Status')
     status_history = fields.Text('Status History')
     is_in_customer = fields.Boolean(string="Delivered to Customer", compute='_compute_customer_location')
-    date_promised = fields.Datetime(string='Promised Date')
     repair_tech = fields.Many2one('hr.employee', 'Repair Tech', domain=_filter_repair_tech)
-    # repair_tech = fields.Many2one('hr.employee', 'Repair Tech')
+    repair_locn = fields.Selection([
+        ('cwh', 'CWH'),
+        ('instore', 'In-Store'),
+        ('thirdparty', '3rd Party'),
+        ('exstore', 'Ex-Store')
+    ], string='Repair Location')
+    # RO Dates
+    ro_confirmed_date = fields.Datetime(string='Confirmed Date')
+    ro_started_date = fields.Datetime(string='Started Date')
+    ro_ended_date = fields.Datetime(string='Ended Date')
+    ro_promised_date = fields.Datetime(string='Promised Date')
+    # RI Dates
+    ri_recd_from_cust_date = fields.Datetime(string='Received from Customer')
+    ri_sent_out_date = fields.Datetime(string='Sent Out Date')
+    ri_recd_out_date = fields.Datetime(string='Received Out Date')
+    ri_sent_back_date = fields.Datetime(string='Sent Back Date')
+    ri_recd_back_date = fields.Datetime(string='Received Back Date')
+    ri_ret_to_cust_date = fields.Datetime(string='Return to Customer')
+    # Calculated Elapsed Time
+    total_system_time = fields.Datetime(string='Total System Time')
+    total_outsourced_time = fields.Datetime(string='Total Outsourced Time')
+    total_outsourced_service_time = fields.Datetime(string='Total Outsourced Service Time')
+    total_outsourced_wait_time = fields.Datetime(string='Total Outsourced Wait Time')
+    performance_time = fields.Datetime(string='Performance Time')
+    store_disp_reaction_time = fields.Datetime(string='Store Dispatch Reaction Time')
+    store_custret_reaction_time = fields.Datetime(string='Store Customer Return Reaction Time')
     
     # OVERRIDE FIELDS
     product_id = fields.Many2one(string='Repair Item')
@@ -63,6 +87,36 @@ class PrimerRepair(models.Model):
     def create(self, values):
         location_dest_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
         values['location_dest_id'] = location_dest_id.id
+
+        # LOGGING (STATUS, REPAIR TECH, DATE PROMISED)
+        update_user = self.env.user.login
+        update_date = time.strftime('%m/%d/%y %H:%M:%S')
+        current_status_history = self.status_history 
+        new_status_history = ''
+        
+        # STATUS
+        if values.get('status'):
+            current_status_id = values.get('status')
+            update_status = self.env['mrp.repair.status'].browse(current_status_id)
+            if update_status:
+                new_status_history += update_user + ' ' + update_date + ' - ' + update_status.name + '\n'
+        
+        # REPAIR TECH ASSIGNED
+        if values.get('repair_tech'):
+            repair_tech = values.get('repair_tech')
+            repair_tech_emp = self.env['hr.employee'].search([('id', '=', repair_tech)])
+            new_status_history += update_user + ' ' + update_date + ' - ' + 'Repair Tech Assigned: ' + repair_tech_emp.name + '\n'
+        
+        # DATE PROMISED
+        if values.get('date_promised'):
+            new_status_history += update_user + ' ' + update_date + ' - ' + 'Promise date committed.' + '\n'
+
+        #  STATUS LOG 
+        if current_status_history:
+            values['status_history'] = new_status_history + current_status_history
+        else:
+            current_status_history = '\n'
+            values['status_history'] = new_status_history + current_status_history
 
         result = super(PrimerRepair, self).create(values)
 
@@ -101,8 +155,7 @@ class PrimerRepair(models.Model):
         warehouse_id = self.env['stock.warehouse'].search([('lot_stock_id', '=', current_location_id.id)])
         picking_type_name = warehouse_id.code + '-RECV Repair Item from Customer'
         picking_type_id = self.env['stock.picking.type'].search([('name', '=', picking_type_name)], limit=1)
-        # location_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_src_id
-        # location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
+
         Transfer = self.env['stock.picking'].create({
             'picking_type_id' : picking_type_id.id,            
             'partner_id' : partner_id.id,
@@ -128,11 +181,10 @@ class PrimerRepair(models.Model):
         if values.get('status'):
             current_status_id = values.get('status')
             update_status = self.env['mrp.repair.status'].browse(current_status_id)
-            # current_status_history = self.status_history 
-
             if update_status:
                 new_status_history += update_user + ' ' + update_date + ' - ' + update_status.name + '\n'
-
+        
+        # REPAIR TECH ASSIGNED
         if values.get('repair_tech'):
             repair_tech = values.get('repair_tech')
             repair_tech_emp = self.env['hr.employee'].search([('id', '=', repair_tech)])
