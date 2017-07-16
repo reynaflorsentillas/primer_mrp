@@ -89,7 +89,7 @@
                             <field name="ri_recd_back_date" />
                             <field name="ri_ret_to_cust_date" />
                         </group>
-                        <group string="Calculated Elapsed Times (Minutes)">
+                        <group string="Calculated Elapsed Times">
                             <field name="total_system_time" />
                             <field name="total_outsourced_time" />
                             <field name="total_outsourced_service_time" />
