@@ -23,6 +23,7 @@ class PrimerRepair(models.Model):
     # NEW FIELDS
     valid_warranty = fields.Selection([('yes','Yes'),('no','No')], string='Valid Warranty?', required=True, default='no')
     routing = fields.Many2one('mrp.repair.routing', string='Routing')
+    last_route = fields.Many2one('mrp.repair.routing', string='Last Route', readonly=True)
     status = fields.Many2one('mrp.repair.status', 'Status')
     status_history = fields.Text('Status History')
     is_in_customer = fields.Boolean(string="Delivered to Customer", compute='_compute_customer_location')
@@ -32,33 +33,33 @@ class PrimerRepair(models.Model):
         ('instore', 'In-Store'),
         ('thirdparty', '3rd Party'),
         ('exstore', 'Ex-Store')
-    ], string='Repair Location')
+    ], string='Repair Location', readonly=True, compute='_compute_repair_location')
     # RO Dates
     ro_confirmed_date = fields.Datetime(string='Confirmed Date', readonly=True)
     ro_started_date = fields.Datetime(string='Started Date', readonly=True)
     ro_ended_date = fields.Datetime(string='Ended Date', readonly=True)
     ro_promised_date = fields.Datetime(string='Promised Date')
     # RI Dates
-    ri_recd_from_cust_date = fields.Datetime(string='Received from Customer')
-    ri_sent_out_date = fields.Datetime(string='Sent Out Date')
-    ri_recd_out_date = fields.Datetime(string='Received Out Date')
-    ri_sent_back_date = fields.Datetime(string='Sent Back Date')
-    ri_recd_back_date = fields.Datetime(string='Received Back Date')
-    ri_ret_to_cust_date = fields.Datetime(string='Return to Customer')
+    ri_recd_from_cust_date = fields.Datetime(string='Received from Customer', readonly=True)
+    ri_sent_out_date = fields.Datetime(string='Sent Out Date', readonly=True)
+    ri_recd_out_date = fields.Datetime(string='Received Out Date', readonly=True)
+    ri_sent_back_date = fields.Datetime(string='Sent Back Date', readonly=True)
+    ri_recd_back_date = fields.Datetime(string='Received Back Date', readonly=True)
+    ri_ret_to_cust_date = fields.Datetime(string='Return to Customer', readonly=True)
     # Calculated Elapsed Time
-    total_system_time = fields.Datetime(string='Total System Time')
-    total_outsourced_time = fields.Datetime(string='Total Outsourced Time')
-    total_outsourced_service_time = fields.Datetime(string='Total Outsourced Service Time')
-    total_outsourced_wait_time = fields.Datetime(string='Total Outsourced Wait Time')
-    performance_time = fields.Datetime(string='Performance Time')
-    store_disp_reaction_time = fields.Datetime(string='Store Dispatch Reaction Time')
-    store_custret_reaction_time_outsorced = fields.Datetime(string='Store Customer Return Reaction Time: Outsourced')
-    store_custret_reaction_time_instore = fields.Datetime(string='Store Customer Return Reaction Time: In-Store')
+    total_system_time = fields.Integer(string='Total System Time', readonly=True)
+    total_outsourced_time = fields.Integer(string='Total Outsourced Time', readonly=True)
+    total_outsourced_service_time = fields.Integer(string='Total Outsourced Service Time', readonly=True)
+    total_outsourced_wait_time = fields.Integer(string='Total Outsourced Wait Time', readonly=True)
+    performance_time = fields.Integer(string='Performance Time', readonly=True)
+    store_disp_reaction_time = fields.Integer(string='Store Dispatch Reaction Time', readonly=True)
+    store_custret_reaction_time = fields.Integer(string='Store Customer Return Reaction Time', readonly=True)
     
     # OVERRIDE FIELDS
     product_id = fields.Many2one(string='Repair Item')
     invoice_method = fields.Selection(default='after_repair')
     location_id = fields.Many2one(default=_new_default_stock_location)
+    # operations = fields.One2many(states={})
 
     @api.onchange('location_id')
     def onchange_location_id(self):
@@ -82,6 +83,38 @@ class PrimerRepair(models.Model):
                 record.is_in_customer = True
             else:
                 record.is_in_customer = False
+
+    @api.multi
+    @api.depends('last_route')
+    def _compute_repair_location(self):
+        for record in self:
+            last_repair_locn = record.repair_locn
+            last_route = self.env['mrp.repair.routing'].search([('id', '=', record.last_route.id)], limit=1)
+            if last_route:
+                if last_route.route == 'central':
+                    # picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'internal'),('warehouse_id','=',last_route.route_warehouse.id),('active', '=', True)], limit=1)
+                    # location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
+                    # if record.location_id.id == location_dest_id.id:
+                    record.repair_locn = 'cwh'
+                elif last_route.route == 'servicecenter':
+                    # picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'internal'),('warehouse_id','=',last_route.route_warehouse.id),('active', '=', True)], limit=1)
+                    # location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
+                    # if record.location_id.id == location_dest_id.id:
+                    record.repair_locn = 'exstore'
+                elif last_route.route == 'thirdparty':
+                    # warehouse_id = self.env['stock.warehouse'].search([('lot_stock_id', '=', record.location_id.id)])
+                    # picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'incoming'),('warehouse_id', '=', warehouse_id.id),('active', '=', True),('name', 'like', 'Vendor')], limit=1)
+                    # location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
+                    # if record.location_id.id == location_dest_id.id:
+                    #     record.repair_locn = 'thirdparty'
+                    record.repair_locn = 'thirdparty'
+                else:
+                    if record.state == 'done' or record.state == '2binvoiced':
+                        location_ids = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
+                        if record.location_id.id == location_ids.id:
+                            record.repair_locn = 'instore'
+                    else:
+                        record.repair_locn = last_repair_locn
 
     @api.model
     def create(self, values):
@@ -109,7 +142,8 @@ class PrimerRepair(models.Model):
         
         # DATE PROMISED
         if values.get('ro_promised_date'):
-            new_status_history += update_user + ' ' + update_date + ' - ' + 'Promise date committed.' + '\n'
+            promised_date = values.get('ro_promised_date')
+            new_status_history += update_user + ' ' + update_date + ' - ' + 'Promise date committed: ' + promised_date + '\n'
 
         #  STATUS LOG 
         if current_status_history:
@@ -194,7 +228,8 @@ class PrimerRepair(models.Model):
         
         # DATE PROMISED
         if values.get('ro_promised_date'):
-            new_status_history += update_user + ' ' + update_date + ' - ' + 'Promise date committed.' + '\n'
+            promised_date = values.get('ro_promised_date')
+            new_status_history += update_user + ' ' + update_date + ' - ' + 'Promise date committed: ' + promised_date + '\n'
 
         #  STATUS LOG 
         if current_status_history:
@@ -206,11 +241,11 @@ class PrimerRepair(models.Model):
         # ROUTING
         if values.get('routing'):
             selected_routing = values.get('routing')
-            _logger.info('SARANGHAE~')
+            # values['last_route'] = selected_routing
 
             selected_routing_route = self.env['mrp.repair.routing'].search([('id', '=', selected_routing)])
 
-            partner_id = self.partner_id
+            partner_id = self.partner_id.id
             product_id = self.product_id
             product_uom = self.product_uom
             name = self.name
@@ -226,6 +261,8 @@ class PrimerRepair(models.Model):
                 if route_warehouse:
                     picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'internal'),('warehouse_id','=',route_warehouse.id),('active', '=', True)], limit=1)
                     location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
+                    values['last_route'] = selected_routing
+                    values['ri_sent_out_date'] = time.strftime('%m/%d/%y %H:%M:%S')
                 else:
                     raise UserError("No route warehouse defined for the selected routing. Please update routing first.")
                 
@@ -233,6 +270,8 @@ class PrimerRepair(models.Model):
                 if route_warehouse:               
                     picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'internal'),('warehouse_id','=',route_warehouse.id),('active', '=', True)], limit=1)
                     location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
+                    values['last_route'] = selected_routing
+                    values['ri_sent_out_date'] = time.strftime('%m/%d/%y %H:%M:%S')
                 else:
                     raise UserError("No route warehouse defined for the selected routing. Please update routing first.")
             
@@ -241,11 +280,15 @@ class PrimerRepair(models.Model):
                 picking_type_name = warehouse_id.code + '-Delivery Order'
                 picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'outgoing'),('warehouse_id','=', warehouse_id.id),('active', '=', True),('name', '=', picking_type_name)], limit=1)
                 location_dest_id = self.location_dest_id
+                values['last_route'] = selected_routing
                 
             elif route == 'thirdparty':
                 warehouse_id = self.env['stock.warehouse'].search([('lot_stock_id', '=', location_id.id)])
                 picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'incoming'),('warehouse_id', '=', warehouse_id.id),('active', '=', True),('name', 'like', 'Vendor')], limit=1)
                 location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
+                partner_id = False
+                values['last_route'] = selected_routing
+                values['ri_sent_out_date'] = time.strftime('%m/%d/%y %H:%M:%S')
 
             # CHECK IF EXISTS IN CURRENT STOCK
             # lot = self.env['stock.production.lot'].search([('name', '=', name),('product_id', '=', product_id.id)])
@@ -260,7 +303,7 @@ class PrimerRepair(models.Model):
                 if not picking_pending_exists:
                     Transfer = self.env['stock.picking'].create({
                         'picking_type_id' : picking_type_id.id,            
-                        'partner_id' : partner_id.id,
+                        'partner_id' : partner_id,
                         'location_id' : location_id.id,
                         'location_dest_id' : location_dest_id.id,
                         'origin' : name,

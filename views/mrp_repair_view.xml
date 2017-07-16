@@ -60,7 +60,6 @@
                     <field name="valid_warranty" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
                     <field name="status" />
                     <field name="ro_promised_date" />
-                    <field name="repair_locn" />
                 </xpath>
 
                 <xpath expr="//field[@name='location_dest_id']" position="after">
@@ -73,6 +72,10 @@
                         <field name="status_history" readonly="1" />
                     </page>
                     <page string="Statistics">
+                        <group>
+                            <field name="last_route" />
+                            <field name="repair_locn" />
+                        </group>
                         <group string="RO (Repair Order) Dates">
                             <field name="ro_confirmed_date" />
                             <field name="ro_started_date" />
@@ -86,15 +89,14 @@
                             <field name="ri_recd_back_date" />
                             <field name="ri_ret_to_cust_date" />
                         </group>
-                        <group string="Calculated Elapsed Times">
+                        <group string="Calculated Elapsed Times (Minutes)">
                             <field name="total_system_time" />
                             <field name="total_outsourced_time" />
                             <field name="total_outsourced_service_time" />
                             <field name="total_outsourced_wait_time" />
                             <field name="performance_time" />
                             <field name="store_disp_reaction_time" />
-                            <field name="store_custret_reaction_time_outsorced" />
-                            <field name="store_custret_reaction_time_instore" />
+                            <field name="store_custret_reaction_time" />
                         </group>
                     </page>
                 </notebook>
@@ -123,6 +125,12 @@
                 <xpath expr="//field[@name='operations']/tree//field[@name='lot_id']" position="attributes">
                     <attribute name="invisible">1</attribute>
                 </xpath>
+
+                <!--<xpath expr="//field[@name='operations']/tree//field[@name='location_id']" position="attributes">
+                    <attribute name="attrs">{'readonly': [('state', 'in', ['draft','cancel'])]}</attribute>
+                    <attribute name="attrs">{'readonly': [('state', '=', 'draft')]}</attribute>
+                    <attribute name="states">{'confirmed': [('readonly', False)]}</attribute>
+                </xpath>-->
 
                 <xpath expr="//field[@name='operations']/tree//field[@name='location_id']" position="after">
                     <field name="qty_on_hand" />

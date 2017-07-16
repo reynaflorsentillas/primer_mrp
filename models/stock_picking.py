@@ -1,5 +1,6 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError
+import time
 
 import logging
 _logger = logging.getLogger(__name__)
@@ -69,7 +70,9 @@ class Picking(models.Model):
                     # _logger.info(customer_location_id.id)
                     lot_id = self.env['stock.production.lot'].search([('name','=',origin)])
                     sql = """UPDATE public.mrp_repair SET location_id = %s, location_dest_id = %s, routing = %s, lot_id = %s WHERE id = %s"""
-                    self.env.cr.execute(sql, (self.location_dest_id.id, customer_location_id.id, None, lot_id.id, repair.id))
+                    self.env.cr.execute(sql, (self.location_dest_id.id, customer_location_id.id, None, lot_id.id, repair.id)) 
+                    # if repair.state == 'confirmed':
+                    #     self.
                 else:
                     sql = """UPDATE public.mrp_repair SET location_id = %s, location_dest_id = %s, routing = %s WHERE id = %s"""
                     self.env.cr.execute(sql, (self.location_dest_id.id, self.location_id.id, None,repair.id))
@@ -119,3 +122,55 @@ class Picking(models.Model):
                 })
 
         return True
+
+    @api.multi
+    def do_new_transfer(self):
+        super(Picking, self).do_new_transfer()
+        for pick in self:
+            origin = pick.origin
+            is_return = False
+            # check_repair = self.env['mrp.repair'].search([('name', '=', origin),('state', 'not in', ['done','cancel'])], limit=1)
+            check_repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
+
+            if not len(check_repair):
+                # CHECK IF RETURN
+                # transfer_order = self.env['stock.picking'].search([('name', '=', origin),('state', 'not in', ['done','cancel'])], limit=1)
+                transfer_order = self.env['stock.picking'].search([('name', '=', origin)], limit=1)
+                if transfer_order:
+                    origin = transfer_order.origin
+                    is_return = True
+
+            # repair = self.env['mrp.repair'].search([('name', '=', origin),('state', 'not in', ['done','cancel'])], limit=1)
+            repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
+            if repair:
+                if is_return == False:
+                    if repair.last_route:
+                        # DATE RETURNED TO CUSTOMER
+                        if repair.last_route.route == 'customer':
+                            _logger.info('DATE RETURNED TO CUSTOMER')
+                            cust_location_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
+                            if pick.location_dest_id.id == cust_location_id.id:
+                                _logger.info('MAUI')
+                                _logger.info(pick.location_dest_id.id)
+                                _logger.info(cust_location_id.id)
+                                repair.write({'ri_ret_to_cust_date': time.strftime('%m/%d/%y %H:%M:%S')})
+                        # RECEIVE OUT
+                        else:
+                            _logger.info('RECEIVE OUT')
+                            repair.write({'ri_recd_out_date': time.strftime('%m/%d/%y %H:%M:%S')})
+                    else:
+                        # DATE RECEIVED REPAIR ITEM FROM CUSTOMER
+                        _logger.info('DATE RECEIVED REPAIR ITEM FROM CUSTOMER')
+                        warehouse_id = self.env['stock.warehouse'].search([('lot_stock_id', '=', pick.location_dest_id.id)])
+                        if warehouse_id:
+                            picking_type_name = warehouse_id.code + '-RECV Repair Item from Customer'
+                            picking_type_id = self.env['stock.picking.type'].search([('name', '=', picking_type_name)], limit=1)
+                            if pick.picking_type_id.id == picking_type_id.id:
+                                repair.write({'ri_recd_from_cust_date': time.strftime('%m/%d/%y %H:%M:%S')})
+
+                else:
+                    # DATE RECEIVED BACK IN STORE
+                    _logger.info('DATE RECEIVED BACK IN STORE')
+                    repair.write({'ri_recd_back_date': time.strftime('%m/%d/%y %H:%M:%S')})
+        return
+            
