@@ -108,6 +108,8 @@
 
                 <xpath expr="//field[@name='operations']/tree" position="attributes">
                     <attribute name="string">Repair Costs</attribute>
+                    <!--<attribute name="create">[('state', '=', 'draft')]</attribute>-->
+                    <!--<attribute name="attrs">{'create': [('state', '=', 'draft')]}</attribute>-->
                 </xpath>
 
                 <xpath expr="//field[@name='operations']/form" position="attributes">

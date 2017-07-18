@@ -61,7 +61,7 @@ class PrimerRepair(models.Model):
     product_id = fields.Many2one(string='Repair Item')
     invoice_method = fields.Selection(default='after_repair')
     location_id = fields.Many2one(default=_new_default_stock_location)
-    # operations = fields.One2many(states={})
+    operations = fields.One2many(readonly=False,states={})
 
     @api.onchange('location_id')
     def onchange_location_id(self):
@@ -303,6 +303,11 @@ class PrimerRepair(models.Model):
     def action_repair_end(self):
         super(PrimerRepair, self).action_repair_end()
         for repair in self:
+            for item in repair.operations:
+                if item.location_id != repair.location_id:
+                    raise UserError('Make sure the source location of the repair items match the current location of the RO.')
+                if item.product_uom_qty >= item.qty_on_hand:
+                    raise UserError('Make sure the repair items listed in the Repair Costs have sufficient qty on hand in the source location indicated.')
             end_date = time.strftime('%m/%d/%y %H:%M:%S')
             repair.write({'ro_ended_date': end_date})
         return True
@@ -431,7 +436,7 @@ class PrimerRepairLine(models.Model):
     _inherit = 'mrp.repair.line'
 
     # NEW FIELDS
-    qty_on_hand = fields.Float(string='Quantity on Hand', readonly=True, store=True)
+    qty_on_hand = fields.Float(string='Quantity on Hand', readonly=True, store=True, compute='_compute_qty_on_hand')
 
     # OVERRIDE FIELDS
     type = fields.Selection(default='add')
@@ -454,6 +459,13 @@ class PrimerRepairLine(models.Model):
             self.location_id = self.env['stock.location'].search([('usage', '=', 'production')], limit=1).id
             self.location_dest_id = self.env['stock.location'].search([('scrap_location', '=', True)], limit=1).id
 
+    @api.multi
+    @api.depends('product_id','location_id')
+    def _compute_qty_on_hand(self):
+        for record in self:
+            stock_quant = self.env['stock.quant'].search([('product_id', '=', record.product_id.id),('location_id', '=', record.location_id.id)])
+            for stock in stock_quant:
+                record.qty_on_hand += stock.qty
 
 class PrimerRepairStatus(models.Model):
     _name = 'mrp.repair.status'

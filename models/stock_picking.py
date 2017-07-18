@@ -76,6 +76,14 @@ class Picking(models.Model):
                 else:
                     sql = """UPDATE public.mrp_repair SET location_id = %s, location_dest_id = %s, routing = %s WHERE id = %s"""
                     self.env.cr.execute(sql, (self.location_dest_id.id, self.location_id.id, None,repair.id))
+                # UPDATE REPAIR COST ITEMS LOCATION
+                if repair.state != 'under_repair':
+                    repair_line = self.env['mrp.repair.line'].search([('repair_id', '=', repair.id)])
+                    for line in repair_line:
+                        sql = """UPDATE public.mrp_repair_line SET location_id = %s WHERE id = %s"""
+                        self.env.cr.execute(sql, (self.location_dest_id.id,line.id))
+                        # super(PrimerRepair, self)._compute_qty_on_hand()
+                        line._compute_qty_on_hand()
 
         else:
             # We sort our moves by importance of state: "confirmed" should be first, then we'll have
