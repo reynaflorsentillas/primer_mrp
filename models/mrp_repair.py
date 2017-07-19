@@ -26,6 +26,7 @@ class PrimerRepair(models.Model):
     valid_warranty = fields.Selection([('yes','Yes'),('no','No')], string='Valid Warranty?', required=True, default='no')
     routing = fields.Many2one('mrp.repair.routing', string='Routing')
     last_route = fields.Many2one('mrp.repair.routing', string='Last Route', readonly=True)
+    last_route_non_cust = fields.Many2one('mrp.repair.routing', string='Last Route Non Cust', readonly=True)
     status = fields.Many2one('mrp.repair.status', 'Status')
     status_history = fields.Text('Status History')
     is_in_customer = fields.Boolean(string="Delivered to Customer", compute='_compute_customer_location')
@@ -90,9 +91,6 @@ class PrimerRepair(models.Model):
     @api.depends('last_route')
     def _compute_repair_location(self):
         for record in self:
-            last_repair_locn = record.repair_locn
-            _logger.info('LIAR')
-            _logger.info(last_repair_locn)
             last_route = self.env['mrp.repair.routing'].search([('id', '=', record.last_route.id)], limit=1)
             if last_route:
                 if last_route.route == 'central':
@@ -101,13 +99,26 @@ class PrimerRepair(models.Model):
                     record.repair_locn = 'exstore'
                 elif last_route.route == 'thirdparty':
                     record.repair_locn = 'thirdparty'
-                else:
-                    if record.state == 'done' or record.state == '2binvoiced':
-                        location_ids = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
-                        if record.location_id.id == location_ids.id:
-                            record.repair_locn = 'instore'
+                elif last_route.route == 'customer':
+                    _logger.info('CUSTOMER')
+                    # if record.state == 'done' or record.state == '2binvoiced':
+                    # location_ids = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
+                    # if record.location_id.id == location_ids.id:
+                    #     _logger.info('instore')
+                    #     record.repair_locn = 'instore'
+                    # else:
+                    #     _logger.info('notinstore')
+                    last_route_non_cust = record.last_route_non_cust
+                    if last_route_non_cust:
+                        if last_route_non_cust.route == 'central':
+                            record.repair_locn = 'cwh'
+                        elif last_route_non_cust.route == 'servicecenter':
+                            record.repair_locn = 'exstore'
+                        elif last_route_non_cust.route == 'thirdparty':
+                            record.repair_locn = 'thirdparty'
                     else:
-                        record.repair_locn = last_repair_locn
+                        record.repair_locn = 'instore'
+
 
     # COMPUTE TOTAL SYSTEM TIME
     @api.multi
@@ -373,6 +384,7 @@ class PrimerRepair(models.Model):
                     picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'internal'),('warehouse_id','=',route_warehouse.id),('active', '=', True)], limit=1)
                     location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
                     values['last_route'] = selected_routing
+                    values['last_route_non_cust'] = selected_routing
                     values['ri_sent_out_date'] = time.strftime('%m/%d/%y %H:%M:%S')
                 else:
                     raise UserError("No route warehouse defined for the selected routing. Please update routing first.")
@@ -382,6 +394,7 @@ class PrimerRepair(models.Model):
                     picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'internal'),('warehouse_id','=',route_warehouse.id),('active', '=', True)], limit=1)
                     location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
                     values['last_route'] = selected_routing
+                    values['last_route_non_cust'] = selected_routing
                     values['ri_sent_out_date'] = time.strftime('%m/%d/%y %H:%M:%S')
                 else:
                     raise UserError("No route warehouse defined for the selected routing. Please update routing first.")
@@ -399,6 +412,7 @@ class PrimerRepair(models.Model):
                 location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
                 partner_id = False
                 values['last_route'] = selected_routing
+                values['last_route_non_cust'] = selected_routing
                 values['ri_sent_out_date'] = time.strftime('%m/%d/%y %H:%M:%S')
 
             # CHECK IF EXISTS IN CURRENT STOCK

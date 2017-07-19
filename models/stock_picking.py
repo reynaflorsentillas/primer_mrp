@@ -85,8 +85,6 @@ class Picking(models.Model):
                         for line in repair_line:
                             sql = """UPDATE public.mrp_repair_line SET location_id = %s WHERE id = %s"""
                             self.env.cr.execute(sql, (self.location_dest_id.id,line.id))
-                            # super(PrimerRepair, self)._compute_qty_on_hand()
-                            # line._compute_qty_on_hand()
 
         else:
             # We sort our moves by importance of state: "confirmed" should be first, then we'll have
@@ -161,9 +159,6 @@ class Picking(models.Model):
                             _logger.info('DATE RETURNED TO CUSTOMER')
                             cust_location_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
                             if pick.location_dest_id.id == cust_location_id.id:
-                                _logger.info('MAUI')
-                                _logger.info(pick.location_dest_id.id)
-                                _logger.info(cust_location_id.id)
                                 repair.write({'ri_ret_to_cust_date': time.strftime('%m/%d/%y %H:%M:%S')})
 
                                 Move = self.env['stock.move']
