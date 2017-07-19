@@ -311,6 +311,11 @@ class PrimerRepair(models.Model):
             end_date = time.strftime('%m/%d/%y %H:%M:%S')
             repair.write({'ro_ended_date': end_date})
         return True
+
+    @api.multi
+    def action_repair_done(self):
+        res = {}
+        return res
     
     @api.multi
     def write(self, values):

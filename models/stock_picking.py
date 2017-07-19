@@ -63,10 +63,10 @@ class Picking(models.Model):
 
             repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
 
+            customer_location_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
             # UPDATE REPAIR LOCATION
             if len(repair):
                 if warehouse.lot_stock_id.id == self.location_dest_id.id: 
-                    customer_location_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
                     # _logger.info(customer_location_id.id)
                     lot_id = self.env['stock.production.lot'].search([('name','=',origin)])
                     sql = """UPDATE public.mrp_repair SET location_id = %s, location_dest_id = %s, routing = %s, lot_id = %s WHERE id = %s"""
@@ -76,14 +76,17 @@ class Picking(models.Model):
                 else:
                     sql = """UPDATE public.mrp_repair SET location_id = %s, location_dest_id = %s, routing = %s WHERE id = %s"""
                     self.env.cr.execute(sql, (self.location_dest_id.id, self.location_id.id, None,repair.id))
+
                 # UPDATE REPAIR COST ITEMS LOCATION
+                
                 if repair.state != 'under_repair':
-                    repair_line = self.env['mrp.repair.line'].search([('repair_id', '=', repair.id)])
-                    for line in repair_line:
-                        sql = """UPDATE public.mrp_repair_line SET location_id = %s WHERE id = %s"""
-                        self.env.cr.execute(sql, (self.location_dest_id.id,line.id))
-                        # super(PrimerRepair, self)._compute_qty_on_hand()
-                        line._compute_qty_on_hand()
+                    if repair.location_id.id != customer_location_id.id:
+                        repair_line = self.env['mrp.repair.line'].search([('repair_id', '=', repair.id)])
+                        for line in repair_line:
+                            sql = """UPDATE public.mrp_repair_line SET location_id = %s WHERE id = %s"""
+                            self.env.cr.execute(sql, (self.location_dest_id.id,line.id))
+                            # super(PrimerRepair, self)._compute_qty_on_hand()
+                            # line._compute_qty_on_hand()
 
         else:
             # We sort our moves by importance of state: "confirmed" should be first, then we'll have
@@ -162,6 +165,23 @@ class Picking(models.Model):
                                 _logger.info(pick.location_dest_id.id)
                                 _logger.info(cust_location_id.id)
                                 repair.write({'ri_ret_to_cust_date': time.strftime('%m/%d/%y %H:%M:%S')})
+
+                                Move = self.env['stock.move']
+                                moves = self.env['stock.move']
+                                for operation in repair.operations:
+                                    move = Move.create({
+                                        'name': operation.name,
+                                        'product_id': operation.product_id.id,
+                                        'restrict_lot_id': operation.lot_id.id,
+                                        'product_uom_qty': operation.product_uom_qty,
+                                        'product_uom': operation.product_uom.id,
+                                        'partner_id': repair.address_id.id,
+                                        'location_id': operation.location_id.id,
+                                        'location_dest_id': operation.location_dest_id.id,
+                                    })
+                                    moves |= move
+                                    operation.write({'move_id': move.id, 'state': 'done'})
+                                moves.action_done()
                         # RECEIVE OUT
                         else:
                             _logger.info('RECEIVE OUT')
