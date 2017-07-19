@@ -73,8 +73,8 @@
                     </page>
                     <page string="Statistics">
                         <group>
-                            <field name="last_route" />
-                            <field name="last_route_non_cust" />
+                            <field name="last_route" invisible="1"/>
+                            <field name="last_route_non_cust" invisible="1"/>
                             <field name="repair_locn" />
                         </group>
                         <group string="RO (Repair Order) Dates">
