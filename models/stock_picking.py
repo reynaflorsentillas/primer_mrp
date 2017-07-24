@@ -47,14 +47,9 @@ class Picking(models.Model):
         elif all(move.state in ['cancel', 'done'] for move in self.move_lines):
             self.state = 'done'
 
-            # CHECK IF LOCATION BELONGS TO REPAIR'S SERVICE CENTER
-            warehouse_id = self.env.user.warehouse_id
-            warehouse = self.env['stock.warehouse'].search([('id', '=', warehouse_id.id)])
-
             origin = self.origin
 
             check_repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
-
             if not len(check_repair):
                 # CHECK IF RETURN
                 transfer_order = self.env['stock.picking'].search([('name', '=', origin)], limit=1)
@@ -64,18 +59,40 @@ class Picking(models.Model):
             repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
 
             customer_location_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
+            _logger.info('customer_location_id')
+            _logger.info(customer_location_id)
+
             # UPDATE REPAIR LOCATION
             if len(repair):
+                _logger.info('BOOMBAYAH!')
+
+                warehouse_id = self.env.user.warehouse_id
+                warehouse = self.env['stock.warehouse'].search([('id', '=', warehouse_id.id)])
+                _logger.info('BADTRIP')
+                _logger.info(warehouse)
+                # RepairUpdate = self.env['mrp.repair']
+
                 if warehouse.lot_stock_id.id == self.location_dest_id.id: 
-                    # _logger.info(customer_location_id.id)
+                    _logger.info('JAJAMYEON!')
                     lot_id = self.env['stock.production.lot'].search([('name','=',origin)])
-                    sql = """UPDATE public.mrp_repair SET location_id = %s, location_dest_id = %s, routing = %s, lot_id = %s WHERE id = %s"""
-                    self.env.cr.execute(sql, (self.location_dest_id.id, customer_location_id.id, None, lot_id.id, repair.id)) 
-                    # if repair.state == 'confirmed':
-                    #     self.
-                else:
-                    sql = """UPDATE public.mrp_repair SET location_id = %s, location_dest_id = %s, routing = %s WHERE id = %s"""
-                    self.env.cr.execute(sql, (self.location_dest_id.id, self.location_id.id, None,repair.id))
+                    _logger.info(lot_id)
+                #     # sql = """UPDATE public.mrp_repair SET location_id = %s, location_dest_id = %s, routing = %s, lot_id = %s WHERE id = %s"""
+                #     # self.env.cr.execute(sql, (self.location_dest_id.id, customer_location_id.id, None, lot_id.id, repair.id))
+                #     self.env['mrp.repair'].sudo().write({
+                #         'location_id': self.location_dest_id.id,
+                #         'location_dest_id': customer_location_id.id,
+                #         'routing': None,
+                #         'lot_id': lot_id.id,
+                #     })
+                # else:
+                #      _logger.info('BIBIMBAP!')
+                #     # sql = """UPDATE public.mrp_repair SET location_id = %s, location_dest_id = %s, routing = %s WHERE id = %s"""
+                #     # self.env.cr.execute(sql, (self.location_dest_id.id, self.location_id.id, None,repair.id))
+                #     self.env['mrp.repair'].sudo().write({
+                #         'location_id': self.location_dest_id.id,
+                #         'location_dest_id': self.location_id.id,
+                #         'routing': None,
+                #     })
 
                 # UPDATE REPAIR COST ITEMS LOCATION
                 
@@ -101,13 +118,16 @@ class Picking(models.Model):
 
     @api.multi
     def force_assign(self):
-        """ Changes state of picking to available if moves are confirmed or waiting.
-        @return: True
-        """
-        self.mapped('move_lines').filtered(lambda move: move.state in ['confirmed', 'waiting']).force_assign()
+        # """ Changes state of picking to available if moves are confirmed or waiting.
+        # @return: True
+        # """
+        # self.mapped('move_lines').filtered(lambda move: move.state in ['confirmed', 'waiting']).force_assign()
+        super(Picking, self).force_assign()
+        _logger.info('ANNYEONG!')
 
         if self.origin:
             operation_id = self.env['stock.pack.operation'].search([('picking_id', '=', self.id)])
+            _logger.info(operation_id)
 
             for operation in operation_id:
 
@@ -138,12 +158,10 @@ class Picking(models.Model):
         for pick in self:
             origin = pick.origin
             is_return = False
-            # check_repair = self.env['mrp.repair'].search([('name', '=', origin),('state', 'not in', ['done','cancel'])], limit=1)
             check_repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
 
             if not len(check_repair):
                 # CHECK IF RETURN
-                # transfer_order = self.env['stock.picking'].search([('name', '=', origin),('state', 'not in', ['done','cancel'])], limit=1)
                 transfer_order = self.env['stock.picking'].search([('name', '=', origin)], limit=1)
                 if transfer_order:
                     origin = transfer_order.origin

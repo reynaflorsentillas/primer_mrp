@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<template id="report_mrprepairorder" inherit_id="mrp_repair.report_mrprepairorder" name="Repair Order Quotation">
+	<xpath expr="//td/p" position="replace">
+		<span t-field="line.name"/>
+	</xpath>	
+</template>
+</odoo>

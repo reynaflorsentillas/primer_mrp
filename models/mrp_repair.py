@@ -1,7 +1,8 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
 from datetime import datetime
+from datetime import timedelta
 import time
 
 import logging
@@ -21,6 +22,10 @@ class PrimerRepair(models.Model):
     def _filter_repair_tech(self):
         job_id = self.env['hr.job'].search([('name', '=', 'Repair Tech')])
         return [('job_id', '=', job_id.id)]
+
+
+    # Override FIelds
+    name = fields.Char('Repair Reference',default=lambda self: _('New Repair'),copy=False, required=True,states={'confirmed': [('readonly', True)]})
 
     # NEW FIELDS
     valid_warranty = fields.Selection([('yes','Yes'),('no','No')], string='Valid Warranty?', required=True, default='no')
@@ -101,13 +106,6 @@ class PrimerRepair(models.Model):
                     record.repair_locn = 'thirdparty'
                 elif last_route.route == 'customer':
                     _logger.info('CUSTOMER')
-                    # if record.state == 'done' or record.state == '2binvoiced':
-                    # location_ids = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
-                    # if record.location_id.id == location_ids.id:
-                    #     _logger.info('instore')
-                    #     record.repair_locn = 'instore'
-                    # else:
-                    #     _logger.info('notinstore')
                     last_route_non_cust = record.last_route_non_cust
                     if last_route_non_cust:
                         if last_route_non_cust.route == 'central':
@@ -239,6 +237,11 @@ class PrimerRepair(models.Model):
         current_status_history = self.status_history 
         new_status_history = ''
         
+
+        #Added by SDS to get the Latest IR SEQUENCE CODE
+        if values.get('name', _('New Repair')) == _('New Repair'):
+            values['name'] = self.env['ir.sequence'].next_by_code('mrp.repair')         
+
         # STATUS
         if values.get('status'):
             current_status_id = values.get('status')
@@ -285,6 +288,7 @@ class PrimerRepair(models.Model):
         current_location_id = self.location_id
         location_dest_id = self.location_dest_id
         name = self.name
+        scheduled_date = datetime.now() + timedelta(days=5)
         
         warehouse_id = self.env['stock.warehouse'].search([('lot_stock_id', '=', current_location_id.id)])
         picking_type_name = warehouse_id.code + '-RECV Repair Item from Customer'
@@ -295,6 +299,7 @@ class PrimerRepair(models.Model):
             'partner_id' : partner_id.id,
             'location_id' : location_dest_id.id,
             'location_dest_id' : current_location_id.id,
+            'min_date': scheduled_date,
             'origin' : name,
             'move_lines' : [(0, 0, {
                 'product_id' : product_id.id,
@@ -304,8 +309,22 @@ class PrimerRepair(models.Model):
             })]
         })
 
+
+
     @api.multi
     def action_repair_start(self):
+        #SDS
+        #Validate First if Item has already been received in Inventory
+        #Get the Picking type where Type is Customer to WareHouse Location
+        model_stock_picking = self.env['stock.picking'].search([('origin','=', self.name), 
+                                                                ('picking_type_id.default_location_dest_id','=', self.location_id.id),  
+                                                                ('picking_type_id.default_location_src_id','=', self.location_dest_id.id),])
+        if model_stock_picking:
+            if model_stock_picking.state != 'done':
+                raise UserError('Item to be Repair has not yet receive. Please confirm in Inventory.')
+        else:
+            raise UserError('Item to be Repair has not yet receive. Please confirm in Inventory.')
+
         super(PrimerRepair, self).action_repair_start()
         start_date = time.strftime('%m/%d/%y %H:%M:%S')
         return self.write({'ro_started_date': start_date})
@@ -334,6 +353,7 @@ class PrimerRepair(models.Model):
         update_date = time.strftime('%m/%d/%y %H:%M:%S')
         current_status_history = self.status_history 
         new_status_history = ''
+        scheduled_date = datetime.now() + timedelta(days=5)
         
         # STATUS
         if values.get('status'):
@@ -431,6 +451,7 @@ class PrimerRepair(models.Model):
                         'partner_id' : partner_id,
                         'location_id' : location_id.id,
                         'location_dest_id' : location_dest_id.id,
+                        'min_date': scheduled_date,
                         'origin' : name,
                         'move_lines' : [(0, 0, {
                             'product_id' : product_id.id,
@@ -485,6 +506,37 @@ class PrimerRepairLine(models.Model):
             stock_quant = self.env['stock.quant'].search([('product_id', '=', record.product_id.id),('location_id', '=', record.location_id.id)])
             for stock in stock_quant:
                 record.qty_on_hand += stock.qty
+
+    #SDS
+    #Override Method
+    @api.multi
+    def write(self, vals):
+        if self.env.ref('primer_extend_security_access.fpt_group_repair_user') in self.env.user.groups_id:
+            #Get if Product has Been Changed
+            if vals.get('product_id'):
+                model_product_product = self.env['product.product'].search([('id', '=', vals['product_id'])])
+                partner = self.repair_id.partner_id
+                pricelist = self.repair_id.pricelist_id
+                product_oum_qty = self.product_uom_qty
+                if vals.get('product_uom_qty'):
+                    product_oum_qty = vals['product_uom_qty']
+                price = pricelist.get_product_price(model_product_product, product_oum_qty, partner)
+                vals['price_unit'] = price
+        return super(PrimerRepairLine, self).write(vals)
+
+    @api.model
+    def create(self,vals):
+        if self.env.ref('primer_extend_security_access.fpt_group_repair_user') in self.env.user.groups_id:
+            model_mrp_repair = self.env['mrp.repair'].search([('id', '=', vals['repair_id'])])
+            model_product_product = self.env['product.product'].search([('id', '=', vals['product_id'])])
+            partner = model_mrp_repair.partner_id
+            pricelist = model_mrp_repair.pricelist_id
+            price = pricelist.get_product_price(model_product_product, self.product_uom_qty, partner)
+            vals['price_unit'] = price
+
+        res = super(PrimerRepairLine, self).create(vals)
+        return res
+
 
 class PrimerRepairStatus(models.Model):
     _name = 'mrp.repair.status'
