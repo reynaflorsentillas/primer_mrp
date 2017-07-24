@@ -8,120 +8,8 @@ _logger = logging.getLogger(__name__)
 class Picking(models.Model):
     _inherit = 'stock.picking'
 
-    state = fields.Selection([
-        ('draft', 'Draft'), ('cancel', 'Cancelled'),
-        ('waiting', 'Waiting Another Operation'),
-        ('confirmed', 'Waiting Availability'),
-        ('partially_available', 'Partially Available'),
-        ('assigned', 'Available'), ('done', 'Done')], string='Status', compute='_new_compute_state',
-        copy=False, index=True, readonly=True, store=True, track_visibility='onchange',
-        help=" * Draft: not confirmed yet and will not be scheduled until confirmed\n"
-             " * Waiting Another Operation: waiting for another move to proceed before it becomes automatically available (e.g. in Make-To-Order flows)\n"
-             " * Waiting Availability: still waiting for the availability of products\n"
-             " * Partially Available: some products are available and reserved\n"
-             " * Ready to Transfer: products reserved, simply waiting for confirmation.\n"
-             " * Transferred: has been processed, can't be modified or cancelled anymore\n"
-             " * Cancelled: has been cancelled, can't be confirmed anymore")
-
-    @api.depends('move_type', 'launch_pack_operations', 'move_lines.state', 'move_lines.picking_id', 'move_lines.partially_available')
-    @api.one
-    def _new_compute_state(self):
-        ''' State of a picking depends on the state of its related stock.move
-         - no moves: draft or assigned (launch_pack_operations)
-         - all moves canceled: cancel
-         - all moves done (including possible canceled): done
-         - All at once picking: least of confirmed / waiting / assigned
-         - Partial picking
-          - all moves assigned: assigned
-          - one of the move is assigned or partially available: partially available
-          - otherwise in waiting or confirmed state
-        '''
-        if not self.move_lines and self.launch_pack_operations:
-            self.state = 'assigned'
-        elif not self.move_lines:
-            self.state = 'draft'
-        elif any(move.state == 'draft' for move in self.move_lines):  # TDE FIXME: should be all ?
-            self.state = 'draft'
-        elif all(move.state == 'cancel' for move in self.move_lines):
-            self.state = 'cancel'
-        elif all(move.state in ['cancel', 'done'] for move in self.move_lines):
-            self.state = 'done'
-
-            origin = self.origin
-
-            check_repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
-            if not len(check_repair):
-                # CHECK IF RETURN
-                transfer_order = self.env['stock.picking'].search([('name', '=', origin)], limit=1)
-                if transfer_order:
-                    origin = transfer_order.origin
-
-            repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
-
-            customer_location_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
-            _logger.info('customer_location_id')
-            _logger.info(customer_location_id)
-
-            # UPDATE REPAIR LOCATION
-            if len(repair):
-                _logger.info('BOOMBAYAH!')
-
-                warehouse_id = self.env.user.warehouse_id
-                warehouse = self.env['stock.warehouse'].search([('id', '=', warehouse_id.id)])
-                _logger.info('BADTRIP')
-                _logger.info(warehouse)
-                # RepairUpdate = self.env['mrp.repair']
-
-                if warehouse.lot_stock_id.id == self.location_dest_id.id: 
-                    _logger.info('JAJAMYEON!')
-                    lot_id = self.env['stock.production.lot'].search([('name','=',origin)])
-                    _logger.info(lot_id)
-                #     # sql = """UPDATE public.mrp_repair SET location_id = %s, location_dest_id = %s, routing = %s, lot_id = %s WHERE id = %s"""
-                #     # self.env.cr.execute(sql, (self.location_dest_id.id, customer_location_id.id, None, lot_id.id, repair.id))
-                #     self.env['mrp.repair'].sudo().write({
-                #         'location_id': self.location_dest_id.id,
-                #         'location_dest_id': customer_location_id.id,
-                #         'routing': None,
-                #         'lot_id': lot_id.id,
-                #     })
-                # else:
-                #      _logger.info('BIBIMBAP!')
-                #     # sql = """UPDATE public.mrp_repair SET location_id = %s, location_dest_id = %s, routing = %s WHERE id = %s"""
-                #     # self.env.cr.execute(sql, (self.location_dest_id.id, self.location_id.id, None,repair.id))
-                #     self.env['mrp.repair'].sudo().write({
-                #         'location_id': self.location_dest_id.id,
-                #         'location_dest_id': self.location_id.id,
-                #         'routing': None,
-                #     })
-
-                # UPDATE REPAIR COST ITEMS LOCATION
-                
-                if repair.state != 'under_repair':
-                    if repair.location_id.id != customer_location_id.id:
-                        repair_line = self.env['mrp.repair.line'].search([('repair_id', '=', repair.id)])
-                        for line in repair_line:
-                            sql = """UPDATE public.mrp_repair_line SET location_id = %s WHERE id = %s"""
-                            self.env.cr.execute(sql, (self.location_dest_id.id,line.id))
-
-        else:
-            # We sort our moves by importance of state: "confirmed" should be first, then we'll have
-            # "waiting" and finally "assigned" at the end.
-            moves_todo = self.move_lines\
-                .filtered(lambda move: move.state not in ['cancel', 'done'])\
-                .sorted(key=lambda move: (move.state == 'assigned' and 2) or (move.state == 'waiting' and 1) or 0)
-            if self.move_type == 'one':
-                self.state = moves_todo[0].state
-            elif moves_todo[0].state != 'assigned' and any(x.partially_available or x.state == 'assigned' for x in moves_todo):
-                self.state = 'partially_available'
-            else:
-                self.state = moves_todo[-1].state
-
     @api.multi
     def force_assign(self):
-        # """ Changes state of picking to available if moves are confirmed or waiting.
-        # @return: True
-        # """
-        # self.mapped('move_lines').filtered(lambda move: move.state in ['confirmed', 'waiting']).force_assign()
         super(Picking, self).force_assign()
         _logger.info('ANNYEONG!')
 
@@ -167,9 +55,48 @@ class Picking(models.Model):
                     origin = transfer_order.origin
                     is_return = True
 
-            # repair = self.env['mrp.repair'].search([('name', '=', origin),('state', 'not in', ['done','cancel'])], limit=1)
             repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
             if repair:
+                _logger.info('BLUH!')
+                # UPDATE REPAIR
+                if self.state == 'done':
+                    customer_location_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
+
+                    # warehouse_id = self.env.user.warehouse_id
+                    # warehouse = self.env['stock.warehouse'].search([('id', '=', warehouse_id.id)])
+
+                    # DELIVR TO CUSTOMER
+                    # if warehouse.lot_stock_id.id == self.location_dest_id.id: 
+                    if repair.ro_store_location.id == self.location_dest_id.id: 
+                        _logger.info('JAJAMYEON!')
+                        lot_id = self.env['stock.production.lot'].search([('name','=',origin)])
+                        _logger.info(lot_id)
+
+                        repair.sudo().write({
+                            'location_id' : self.location_dest_id.id,
+                            'location_dest_id' : customer_location_id.id,
+                            'routing' : None,
+                            'lot_id' : lot_id.id,
+                        })
+                    else:
+                        _logger.info('BIBIMBAP!')
+                        repair.sudo().write({
+                            'location_id': self.location_dest_id.id,
+                            'location_dest_id': self.location_id.id,
+                            'routing': None,
+                        })
+
+                    # UPDATE REPAIR COST ITEMS LOCATION
+                    if repair.state != 'under_repair':
+                        if repair.location_id.id != customer_location_id.id:
+                            repair_line = self.env['mrp.repair.line'].search([('repair_id', '=', repair.id)])
+                            for line in repair_line:
+                                line.write({
+                                    'location_id' : self.location_dest_id.id,
+                                })
+
+
+                # STATISTICS
                 if is_return == False:
                     if repair.last_route:
                         # DATE RETURNED TO CUSTOMER

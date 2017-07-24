@@ -28,13 +28,14 @@ class PrimerRepair(models.Model):
     name = fields.Char('Repair Reference',default=lambda self: _('New Repair'),copy=False, required=True,states={'confirmed': [('readonly', True)]})
 
     # NEW FIELDS
+    ro_store_location = fields.Many2one('stock.location', 'Store Location of RO', default=_new_default_stock_location, readonly=True)
     valid_warranty = fields.Selection([('yes','Yes'),('no','No')], string='Valid Warranty?', required=True, default='no')
     routing = fields.Many2one('mrp.repair.routing', string='Routing')
     last_route = fields.Many2one('mrp.repair.routing', string='Last Route', readonly=True)
     last_route_non_cust = fields.Many2one('mrp.repair.routing', string='Last Route Non Cust', readonly=True)
     status = fields.Many2one('mrp.repair.status', 'Status')
     status_history = fields.Text('Status History')
-    is_in_customer = fields.Boolean(string="Delivered to Customer", compute='_compute_customer_location')
+    is_in_customer = fields.Boolean(string="Delivered to Customer", compute='_compute_customer_location', store=True)
     repair_tech = fields.Many2one('hr.employee', 'Repair Tech', domain=_filter_repair_tech)
     repair_locn = fields.Selection([
         ('cwh', 'CWH'),
@@ -91,6 +92,7 @@ class PrimerRepair(models.Model):
                 record.is_in_customer = True
             else:
                 record.is_in_customer = False
+                # record.write({'location_dest_id' : location_ids.id})
 
     @api.multi
     @api.depends('last_route')
@@ -334,8 +336,8 @@ class PrimerRepair(models.Model):
         super(PrimerRepair, self).action_repair_end()
         for repair in self:
             for item in repair.operations:
-                if item.location_id != repair.location_id:
-                    raise UserError('Make sure the source location of the repair items match the current location of the RO.')
+                # if item.location_id != repair.location_id:
+                #     raise UserError('Make sure the source location of the repair items match the current location of the RO.')
                 if item.product_uom_qty >= item.qty_on_hand:
                     raise UserError('Make sure the repair items listed in the Repair Costs have sufficient qty on hand in the source location indicated.')
             end_date = time.strftime('%m/%d/%y %H:%M:%S')
@@ -476,7 +478,7 @@ class PrimerRepairLine(models.Model):
     _inherit = 'mrp.repair.line'
 
     # NEW FIELDS
-    qty_on_hand = fields.Float(string='Quantity on Hand', readonly=True, store=True, compute='_compute_qty_on_hand')
+    qty_on_hand = fields.Float(string='Quantity on Hand', readonly=True, compute='_compute_qty_on_hand')
 
     # OVERRIDE FIELDS
     type = fields.Selection(default='add')
