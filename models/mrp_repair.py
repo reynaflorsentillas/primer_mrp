@@ -24,8 +24,12 @@ class PrimerRepair(models.Model):
         return [('job_id', '=', job_id.id)]
 
 
-    # Override FIelds
+    # OVERRIDE FIELDS
     name = fields.Char('Repair Reference',default=lambda self: _('New Repair'),copy=False, required=True,states={'confirmed': [('readonly', True)]})
+    product_id = fields.Many2one(string='Repair Item')
+    invoice_method = fields.Selection(default='after_repair')
+    location_id = fields.Many2one(default=_new_default_stock_location)
+    operations = fields.One2many(readonly=False,states={})
 
     # NEW FIELDS
     ro_store_location = fields.Many2one('stock.location', 'Store Location of RO', default=_new_default_stock_location, readonly=True)
@@ -56,19 +60,13 @@ class PrimerRepair(models.Model):
     ri_recd_back_date = fields.Datetime(string='Received Back Date', readonly=True)
     ri_ret_to_cust_date = fields.Datetime(string='Return to Customer', readonly=True)
     # Calculated Elapsed Time
-    total_system_time = fields.Char(string='Total System Time', readonly=True, compute='_compute_total_system_time')
-    total_outsourced_time = fields.Char(string='Total Outsourced Time', readonly=True, compute='_compute_total_outsourced_time')
-    total_outsourced_service_time = fields.Char(string='Total Outsourced Service Time', readonly=True, compute='_compute_total_outsourced_service_time')
-    total_outsourced_wait_time = fields.Char(string='Total Outsourced Wait Time', readonly=True)
-    performance_time = fields.Char(string='Performance Time', readonly=True, compute='_compute_performance_time')
-    store_disp_reaction_time = fields.Char(string='Store Dispatch Reaction Time', readonly=True, compute='_compute_store_disp_reaction_time')
-    store_custret_reaction_time = fields.Char(string='Store Customer Return Reaction Time', readonly=True, compute='_compute_store_custret_reaction_time')
-    
-    # OVERRIDE FIELDS
-    product_id = fields.Many2one(string='Repair Item')
-    invoice_method = fields.Selection(default='after_repair')
-    location_id = fields.Many2one(default=_new_default_stock_location)
-    operations = fields.One2many(readonly=False,states={})
+    total_system_time = fields.Float(string='Total System Time', readonly=True, compute='_compute_total_system_time')
+    total_outsourced_time = fields.Float(string='Total Outsourced Time', readonly=True, compute='_compute_total_outsourced_time')
+    total_outsourced_service_time = fields.Float(string='Total Outsourced Service Time', readonly=True, compute='_compute_total_outsourced_service_time')
+    total_outsourced_wait_time = fields.Float(string='Total Outsourced Wait Time', readonly=True, compute="_compute_total_outsourced_wait_time")
+    performance_time = fields.Float(string='Performance Time', readonly=True, compute='_compute_performance_time')
+    store_disp_reaction_time = fields.Float(string='Store Dispatch Reaction Time', readonly=True, compute='_compute_store_disp_reaction_time')
+    store_custret_reaction_time = fields.Float(string='Store Customer Return Reaction Time', readonly=True, compute='_compute_store_custret_reaction_time')
 
     @api.onchange('location_id')
     def onchange_location_id(self):
@@ -79,9 +77,9 @@ class PrimerRepair(models.Model):
     def onchange_valid_warranty(self):
         for operation in self.operations:
             if self.valid_warranty == 'yes':
-                operation.to_invoice = False
+                operation.price_unit = 0.00
             else:
-                operation.to_invoice = True
+                super(PrimerRepairLine, operation).onchange_product_id()
     
     @api.multi
     @api.depends('location_id')
@@ -92,7 +90,6 @@ class PrimerRepair(models.Model):
                 record.is_in_customer = True
             else:
                 record.is_in_customer = False
-                # record.write({'location_dest_id' : location_ids.id})
 
     @api.multi
     @api.depends('last_route')
@@ -127,12 +124,12 @@ class PrimerRepair(models.Model):
         for record in self:
             if record.ri_ret_to_cust_date and record.ri_recd_from_cust_date:
                 timeDiff = datetime.strptime(record.ri_ret_to_cust_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ri_recd_from_cust_date, '%Y-%m-%d %H:%M:%S')
-                # result = timeDiff.days + ' Days' + timeDiff.hours + ' Hours'
-                days, seconds = timeDiff.days, timeDiff.seconds
-                hours = days * 24 + seconds // 3600
-                minutes = (seconds % 3600) // 60
-                seconds = seconds % 60
-                record.total_system_time = str(hours) + ' Hour(s) ' + str(minutes) + ' Minute(s) ' + str(seconds) + ' Second(s)'
+
+                # days, seconds = timeDiff.days, timeDiff.seconds
+                # hours = days * 24 + seconds // 3600
+                # minutes = (seconds % 3600) // 60
+                # seconds = seconds % 60
+                record.total_system_time = timeDiff.seconds
 
     # COMPUTE TOTAL OUTSOURCED TIME
     @api.multi
@@ -141,12 +138,12 @@ class PrimerRepair(models.Model):
         for record in self:
             if record.ri_recd_back_date and record.ri_sent_out_date:
                 timeDiff = datetime.strptime(record.ri_recd_back_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ri_sent_out_date, '%Y-%m-%d %H:%M:%S')
-                # result = timeDiff.days + ' Days' + timeDiff.hours + ' Hours'
-                days, seconds = timeDiff.days, timeDiff.seconds
-                hours = days * 24 + seconds // 3600
-                minutes = (seconds % 3600) // 60
-                seconds = seconds % 60
-                record.total_outsourced_time = str(hours) + ' Hour(s) ' + str(minutes) + ' Minute(s) ' + str(seconds) + ' Second(s)'
+
+                # days, seconds = timeDiff.days, timeDiff.seconds
+                # hours = days * 24 + seconds // 3600
+                # minutes = (seconds % 3600) // 60
+                # seconds = seconds % 60
+                record.total_outsourced_time = timeDiff.seconds
 
     # COMPUTE TOTAL OUTSOURCED SERVICE TIME
     @api.multi
@@ -155,26 +152,27 @@ class PrimerRepair(models.Model):
         for record in self:
             if record.ri_sent_back_date and record.ri_recd_out_date:
                 timeDiff = datetime.strptime(record.ri_sent_back_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ri_recd_out_date, '%Y-%m-%d %H:%M:%S')
-                # result = timeDiff.days + ' Days' + timeDiff.hours + ' Hours'
-                days, seconds = timeDiff.days, timeDiff.seconds
-                hours = days * 24 + seconds // 3600
-                minutes = (seconds % 3600) // 60
-                seconds = seconds % 60
-                record.total_outsourced_service_time = str(hours) + ' Hour(s) ' + str(minutes) + ' Minute(s) ' + str(seconds) + ' Second(s)'
+
+                # days, seconds = timeDiff.days, timeDiff.seconds
+                # hours = days * 24 + seconds // 3600
+                # minutes = (seconds % 3600) // 60
+                # seconds = seconds % 60
+                record.total_outsourced_service_time = timeDiff.seconds
 
     # # COMPUTE TOTAL OUTSOURCED WAIT TIME
-    # @api.multi
-    # @api.depends('total_outsourced_time','total_outsourced_service_time')
-    # def _compute_total_outsourced_wait_time(self):
-    #     for record in self:
-    #         if record.total_outsourced_time and record.total_outsourced_service_time:
-    #             timeDiff = datetime.strptime(record.total_outsourced_time, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.total_outsourced_service_time, '%Y-%m-%d %H:%M:%S')
-    #             # result = timeDiff.days + ' Days' + timeDiff.hours + ' Hours'
-    #             days, seconds = timeDiff.days, timeDiff.seconds
-    #             hours = days * 24 + seconds // 3600
-    #             minutes = (seconds % 3600) // 60
-    #             seconds = seconds % 60
-    #             record.total_outsourced_wait_time = str(hours) + ' Hour(s) ' + str(minutes) + ' Minute(s) ' + str(seconds) + ' Second(s)'
+    @api.multi
+    @api.depends('total_outsourced_time','total_outsourced_service_time')
+    def _compute_total_outsourced_wait_time(self):
+        for record in self:
+            if record.total_outsourced_time and record.total_outsourced_service_time:
+                timeDiff = record.total_outsourced_time - record.total_outsourced_service_time
+
+                # days, seconds = timeDiff.days, timeDiff.seconds
+                # hours = days * 24 + seconds // 3600
+                # minutes = (seconds % 3600) // 60
+                # seconds = seconds % 60
+
+                record.total_outsourced_wait_time = timeDiff
 
     # COMPUTE PERFORMANCE TIME
     @api.multi
@@ -183,12 +181,12 @@ class PrimerRepair(models.Model):
         for record in self:
             if record.ri_ret_to_cust_date and record.ro_promised_date:
                 timeDiff = datetime.strptime(record.ri_ret_to_cust_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ro_promised_date, '%Y-%m-%d %H:%M:%S')
-                # result = timeDiff.days + ' Days' + timeDiff.hours + ' Hours'
-                days, seconds = timeDiff.days, timeDiff.seconds
-                hours = days * 24 + seconds // 3600
-                minutes = (seconds % 3600) // 60
-                seconds = seconds % 60
-                record.performance_time = str(hours) + ' Hour(s) ' + str(minutes) + ' Minute(s) ' + str(seconds) + ' Second(s)'
+                
+                # days, seconds = timeDiff.days, timeDiff.seconds
+                # hours = days * 24 + seconds // 3600
+                # minutes = (seconds % 3600) // 60
+                # seconds = seconds % 60
+                record.performance_time = timeDiff.seconds
 
     # COMPUTE STORE DISP REACTION TIME
     @api.multi
@@ -197,12 +195,12 @@ class PrimerRepair(models.Model):
         for record in self:
             if record.ri_sent_out_date and record.ri_recd_from_cust_date:
                 timeDiff = datetime.strptime(record.ri_sent_out_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ri_recd_from_cust_date, '%Y-%m-%d %H:%M:%S')
-                # result = timeDiff.days + ' Days' + timeDiff.hours + ' Hours'
-                days, seconds = timeDiff.days, timeDiff.seconds
-                hours = days * 24 + seconds // 3600
-                minutes = (seconds % 3600) // 60
-                seconds = seconds % 60
-                record.store_disp_reaction_time = str(hours) + ' Hour(s) ' + str(minutes) + ' Minute(s) ' + str(seconds) + ' Second(s)'
+                
+                # days, seconds = timeDiff.days, timeDiff.seconds
+                # hours = days * 24 + seconds // 3600
+                # minutes = (seconds % 3600) // 60
+                # seconds = seconds % 60
+                record.store_disp_reaction_time = timeDiff.seconds
 
     # COMPUTE STORE CUSTOMER RETURN REACTION TIME
     @api.multi
@@ -212,21 +210,21 @@ class PrimerRepair(models.Model):
             if record.repair_locn == 'instore':
                 if record.ri_ret_to_cust_date and record.ro_ended_date:
                     timeDiff = datetime.strptime(record.ri_ret_to_cust_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ro_ended_date, '%Y-%m-%d %H:%M:%S')
-                    # result = timeDiff.days + ' Days' + timeDiff.hours + ' Hours'
-                    days, seconds = timeDiff.days, timeDiff.seconds
-                    hours = days * 24 + seconds // 3600
-                    minutes = (seconds % 3600) // 60
-                    seconds = seconds % 60
-                    record.store_custret_reaction_time = str(hours) + ' Hour(s) ' + str(minutes) + ' Minute(s) ' + str(seconds) + ' Second(s)'
+                    
+                    # days, seconds = timeDiff.days, timeDiff.seconds
+                    # hours = days * 24 + seconds // 3600
+                    # minutes = (seconds % 3600) // 60
+                    # seconds = seconds % 60
+                    record.store_custret_reaction_time = timeDiff.seconds
             else:
                 if record.ri_ret_to_cust_date and record.ri_recd_back_date:
                     timeDiff = datetime.strptime(record.ri_ret_to_cust_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ri_recd_back_date, '%Y-%m-%d %H:%M:%S')
-                    # result = timeDiff.days + ' Days' + timeDiff.hours + ' Hours'
-                    days, seconds = timeDiff.days, timeDiff.seconds
-                    hours = days * 24 + seconds // 3600
-                    minutes = (seconds % 3600) // 60
-                    seconds = seconds % 60
-                    record.store_custret_reaction_time = str(hours) + ' Hour(s) ' + str(minutes) + ' Minute(s) ' + str(seconds) + ' Second(s)'
+                    
+                    # days, seconds = timeDiff.days, timeDiff.seconds
+                    # hours = days * 24 + seconds // 3600
+                    # minutes = (seconds % 3600) // 60
+                    # seconds = seconds % 60
+                    record.store_custret_reaction_time = timeDiff.seconds
 
     @api.model
     def create(self, values):
@@ -327,6 +325,17 @@ class PrimerRepair(models.Model):
         else:
             raise UserError('Item to be Repair has not yet receive. Please confirm in Inventory.')
 
+        for repair in self:
+            # VALIDATE REPAIR COSTS ENTERED
+            if not repair.operations:
+                 raise UserError('Repair Costs must be entered before starting repair.')
+
+            # VALIDATE SPARE PARTS STOCK
+            for operation in repair.operations:
+                if operation.product_id.categ_id.name == 'Spare Part':
+                    if operation.qty_on_hand <= 0:
+                        raise UserError('Not enough stock for spare part: ' + str(operation.product_id.name))
+
         super(PrimerRepair, self).action_repair_start()
         start_date = time.strftime('%m/%d/%y %H:%M:%S')
         return self.write({'ro_started_date': start_date})
@@ -335,11 +344,14 @@ class PrimerRepair(models.Model):
     def action_repair_end(self):
         super(PrimerRepair, self).action_repair_end()
         for repair in self:
-            for item in repair.operations:
-                # if item.location_id != repair.location_id:
-                #     raise UserError('Make sure the source location of the repair items match the current location of the RO.')
-                if item.product_uom_qty >= item.qty_on_hand:
-                    raise UserError('Make sure the repair items listed in the Repair Costs have sufficient qty on hand in the source location indicated.')
+            # if repair.is_in_customer == False:
+            #     for item in repair.operations:
+            #         # if item.location_id != repair.location_id:
+            #         #     raise UserError('Make sure the source location of the repair items match the current location of the RO.')
+            #         # CHECK IF NOT DELIVERED TO CUSTOMER
+            #         if item.product_id.categ_id.name == 'Spare Part':
+            #             if item.qty_on_hand <= 0 or item.qty_on_hand < item.product_uom_qty:
+            #                 raise UserError('Make sure the repair items listed in the Repair Costs have sufficient qty on hand in the source location indicated.')
             end_date = time.strftime('%m/%d/%y %H:%M:%S')
             repair.write({'ro_ended_date': end_date})
         return True
@@ -485,29 +497,27 @@ class PrimerRepairLine(models.Model):
 
     @api.onchange('type', 'repair_id')
     def onchange_operation_type(self):
-        if not self.type:
-            self.location_id = False
-            self.Location_dest_id = False
-        elif self.type == 'add':
-            warehouse = self.env['stock.warehouse'].search([('id','=',self.env.user.warehouse_id.id)], limit=1)
+        super(PrimerRepairLine, self).onchange_operation_type()
+        if self.type == 'add':
+            warehouse = self.env['stock.warehouse'].search([('id', '=', self.env.user.warehouse_id.id)])
             self.location_id = warehouse.lot_stock_id
-            self.location_dest_id = self.env['stock.location'].search([('usage', '=', 'production')], limit=1).id
-            valid_warranty = self.repair_id.valid_warranty
-            if valid_warranty == 'yes':
-                self.to_invoice = False
-            else:
-                self.to_invoice = True
-        else:
-            self.location_id = self.env['stock.location'].search([('usage', '=', 'production')], limit=1).id
-            self.location_dest_id = self.env['stock.location'].search([('scrap_location', '=', True)], limit=1).id
+            self.to_invoice = True
+
+    @api.onchange('repair_id', 'product_id', 'product_uom_qty')
+    def onchange_product_id(self):
+        super(PrimerRepairLine, self).onchange_product_id()
+        valid_warranty = self.repair_id.valid_warranty
+        if valid_warranty == 'yes':
+            self.price_unit = 0.00
 
     @api.multi
     @api.depends('product_id','location_id')
     def _compute_qty_on_hand(self):
         for record in self:
-            stock_quant = self.env['stock.quant'].search([('product_id', '=', record.product_id.id),('location_id', '=', record.location_id.id)])
-            for stock in stock_quant:
-                record.qty_on_hand += stock.qty
+            if record.product_id.categ_id.name == 'Spare Part':
+                stock_quant = self.env['stock.quant'].search([('product_id', '=', record.product_id.id),('location_id', '=', record.location_id.id)])
+                for stock in stock_quant:
+                    record.qty_on_hand += stock.qty
 
     #SDS
     #Override Method

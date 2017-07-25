@@ -26,9 +26,7 @@
                 </xpath>
 
                 <xpath expr="//field[@name='product_id']" position="attributes">
-                    <!--<attribute name="string">Repair Item</attribute>-->
                     <attribute name="domain">[('type', 'in', ['product', 'consu']),('categ_id.name', 'in', ['Luggages', 'Bags']),('tracking', '=', 'serial')]</attribute>
-                    <!--<attribute name="readonly">[('lot_id', '!=', [])]</attribute>-->
                 </xpath>
 
                 <xpath expr="//form/sheet/group/group/label[1]" position="attributes">
@@ -60,7 +58,7 @@
                     <field name="valid_warranty" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
                     <field name="status" />
                     <field name="ro_promised_date" />
-                    <field name="ro_store_location" />
+                    <field name="ro_store_location" invisible="1"/>
                 </xpath>
 
                 <xpath expr="//field[@name='location_dest_id']" position="after">
@@ -72,7 +70,7 @@
                     <page string="Status Log">
                         <field name="status_history" readonly="1" />
                     </page>
-                    <page string="Statistics" invisible="1">
+                    <page string="Statistics" invisible="0">
                         <group>
                             <field name="last_route" invisible="1"/>
                             <field name="last_route_non_cust" invisible="1"/>
@@ -144,6 +142,10 @@
                     <attribute name="invisible">1</attribute>
                 </xpath>
 
+                <xpath expr="//field[@name='operations']/tree//field[@name='to_invoice']" position="attributes">
+                    <attribute name="invisible">1</attribute>
+                </xpath>
+
                 <xpath expr="//field[@name='fees_lines']" position="attributes">
                     <attribute name="invisible">1</attribute>
                 </xpath>
@@ -208,5 +210,6 @@
                 </form>
             </field>
         </record>
+
     </data>
 </odoo>
