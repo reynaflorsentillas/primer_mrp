@@ -1,8 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-<template id="report_mrprepairorder" inherit_id="mrp_repair.report_mrprepairorder" name="Repair Order Quotation">
-	<xpath expr="//td/p" position="replace">
-		<span t-field="line.name"/>
-	</xpath>	
-</template>
+    <template id="report_mrprepairorder" inherit_id="mrp_repair.report_mrprepairorder" name="Repair Order Quotation">
+    	
+    	<xpath expr="//div[@class='row mt32 mb32']/div[4]/strong" position="replace">		
+    		<strong>RO Date:</strong>
+    	</xpath>
+
+    	<!--  REMOVING OF LOT NUMBER -->
+    	<xpath expr="//div[@class='row mt32 mb32']/div[@groups='stock.group_production_lot']" position="replace"/>		
+    	<!-- REMOVING OF TAX -->
+    	<xpath expr="//div[@class='row']/div[@class='col-xs-4 pull-right']/table[@class='table table-condensed']/tr[2]" position="replace"/>
+    		
+    	<xpath expr="//td/p" position="replace">
+    		<span t-field="line.name"/>
+    	</xpath>	
+
+    	<xpath expr="//p[@t-field='o.quotation_notes']" position="after">
+    		<p style="font-size: 90%;">
+    			*Cost Estimate indicated above is subject to change depending on actual repair done on item. Only portion/s of the item indicated in the Repair Order will be subject for repair.			
+    		</p>
+
+
+            <div class="row">
+                <div class="col-xs-4 border-black" style="font-size: 93%;">
+                    <b>Repair Details / Special Instructions: </b>
+                </div>
+            </div>
+            <br/>
+            <div class="row">
+                <div class="col-xs-32">
+                    <div style="border-top: none;border-bottom: 1px solid;border-left: none;border-right: none;" />
+                </div>        
+            </div>
+            <br/>
+            <div class="row">
+                <div class="col-xs-32">
+                    <div style="border-top: none;border-bottom: 1px solid;border-left: none;border-right: none;" />
+                </div>
+            </div>
+            <br/>
+            <div class="row">
+                <div class="col-xs-32" >
+                	<div style="border-top: none;border-bottom: 1px solid;border-left: none;border-right: none;" />
+                </div>        
+            </div>                        
+            <br/>       
+
+    		<p style="font-size: 92%;"><b>Terms and Conditions:</b></p>
+    		<p style="font-size: 90%;">
+    			1. Our company will exercise reasonable care of the repair item but will not be liable for any loss or damages to the contents that may be left inside the bag.
+    		</p>
+    		<p style="font-size: 90%;">
+    			2. <b>PLEASE DO NOT LOSE THIS DOCUMENT.</b> The above item will be released to the customer once full payment is made and upon presentation of Repair Order Form. An authorization letter is required in the absence of the customer/owner to claim the item in his/her behalf.
+    		</p>
+    		<p style="font-size: 90%;">
+    			3. Any repair item not claimed within 30 days from the <b>DATE OF NOTIFICATION TO CLAIM ITEM</b> will be disposed of. Thereafter no claim can be made against the company beyond the claiming period.
+    		</p>
+
+    		<p style="font-size: 90%;">
+    			4. Above due date may change at the discretion of the company depending on the availability of spare parts. Furthermore, LTS will not be liable for any delay in due date due to the lack of spare parts. The customer may opt to claim the item at any time should he/she withdraws or discontinues repair.
+    		</p>
+
+    		<br/>
+    		<br/>
+    		<br/>
+
+    		
+            <div class="row">
+                <div class="col-xs-4 border-black">
+                    I agree and conform:
+                </div>
+                <div class="col-xs-4">
+                    Item received by (Store):
+                </div>
+                <div class="col-xs-4">
+                    LTS LUGGAGE TRADING <![CDATA[&amp;]]> <![CDATA[&emsp;]]> SERVICES INC                
+                </div>            
+            </div>
+
+            <br/>
+            <br/>
+
+            <div class="row">
+                <div class="col-xs-4" >
+                	<div style="border-top: none;border-bottom: 2px solid;border-left: none;border-right: none;" />
+                </div>
+                <div class="col-xs-4">
+                    <div style="border-top: none;border-bottom: 2px solid;border-left: none;border-right: none;" />
+                </div>
+                <div class="col-xs-4">
+                    <div style="border-top: none;border-bottom: 2px solid;border-left: none;border-right: none;" />
+                </div>            
+            </div>    	
+
+
+        	
+            <div class="row">
+                <div class="col-xs-4">
+                    Customer Signature/Date
+                </div>
+                <div class="col-xs-4">
+                    Signature / Date
+                </div>
+                <div class="col-xs-4">
+                    Signature / Date                
+                </div>            
+            </div>    	
+
+    	</xpath>	
+    </template>
 </odoo>

@@ -11,21 +11,16 @@ class Picking(models.Model):
     @api.multi
     def force_assign(self):
         super(Picking, self).force_assign()
-        _logger.info('ANNYEONG!')
-
         if self.origin:
             operation_id = self.env['stock.pack.operation'].search([('picking_id', '=', self.id)])
             _logger.info(operation_id)
 
             for operation in operation_id:
-
                 lot = self.env['stock.production.lot'].search([('name', '=', self.origin),('product_id', '=', operation.product_id.id)])
-
                 if lot:
                     lot_id = lot.id
                 else:
                     lot_id = None
-
                 OperationLot = self.env['stock.pack.operation.lot'].create({
                     'lot_name' : self.origin,
                     'qty_todo' : 1,
@@ -33,11 +28,9 @@ class Picking(models.Model):
                     'operation_id' : operation.id,
                     'lot_id' : lot_id,
                 })
-
                 operation.write({
                     'qty_done' : 1,
                 })
-
         return True
 
     @api.multi
@@ -57,7 +50,6 @@ class Picking(models.Model):
 
             repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
             if repair:
-                _logger.info('BLUH!')
                 # UPDATE REPAIR
                 if self.state == 'done':
                     customer_location_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
@@ -128,7 +120,7 @@ class Picking(models.Model):
                             repair.write({'ri_recd_out_date': time.strftime('%m/%d/%y %H:%M:%S')})
                     else:
                         # DATE RECEIVED REPAIR ITEM FROM CUSTOMER
-                        _logger.info('DATE RECEIVED REPAIR ITEM FROM CUSTOMER')
+                        # _logger.info('DATE RECEIVED REPAIR ITEM FROM CUSTOMER')
                         warehouse_id = self.env['stock.warehouse'].search([('lot_stock_id', '=', pick.location_dest_id.id)])
                         if warehouse_id:
                             picking_type_name = warehouse_id.code + '-RECV Repair Item from Customer'
@@ -138,7 +130,7 @@ class Picking(models.Model):
 
                 else:
                     # DATE RECEIVED BACK IN STORE
-                    _logger.info('DATE RECEIVED BACK IN STORE')
+                    # _logger.info('DATE RECEIVED BACK IN STORE')
                     repair.write({'ri_recd_back_date': time.strftime('%m/%d/%y %H:%M:%S')})
         return
             

@@ -1,0 +1,6 @@
+id,partner_id/id
+__export__.stock_location_40,__export__.res_partner_10
+__export__.stock_location_46,__export__.res_partner_9
+__export__.stock_location_28,__export__.res_partner_7
+__export__.stock_location_34,__export__.res_partner_8
+stock.stock_location_stock,base.main_partner

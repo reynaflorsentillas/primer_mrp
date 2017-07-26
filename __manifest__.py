@@ -33,9 +33,13 @@
         'data/hr_employee_repair_data.xml',
         'data/mrp_repair_routing_data.xml',
         'data/mrp_repair_status_data.xml',
+        'data/stock.location.csv',
         'views/mrp_repair_view.xml',
         'views/stock_move_views.xml',
+        'views/stock_picking_view.xml',
         'report/mrp_repair_template_repair_order.xml',
+        'report/external_layout_header_repair.xml',
+        'report/external_layout_header_invoice.xml',
     ],
     # only loaded in demonstration mode
     'demo': [
