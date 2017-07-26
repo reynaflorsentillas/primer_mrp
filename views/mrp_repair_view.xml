@@ -70,7 +70,7 @@
                     <page string="Status Log">
                         <field name="status_history" readonly="1" />
                     </page>
-                    <page string="Statistics" invisible="0">
+                    <page string="Statistics" invisible="1">
                         <group>
                             <field name="last_route" invisible="1"/>
                             <field name="last_route_non_cust" invisible="1"/>
