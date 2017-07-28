@@ -322,10 +322,14 @@ class PrimerRepair(models.Model):
         if model_stock_picking:
             if model_stock_picking.state != 'done':
                 raise UserError('Item to be Repair has not yet receive. Please confirm in Inventory.')
-        else:
-            raise UserError('Item to be Repair has not yet receive. Please confirm in Inventory.')
+        # else:
+            # raise UserError('Item to be Repair has not yet receive. Please confirm in Inventory.')
 
         for repair in self:
+            # VALIDATE IF REPAIR TECHNICIAN ENTERED
+            If not repair.repair_tech:
+                raise UserError('Repair technician must be entered before starting repair.')
+
             # VALIDATE REPAIR COSTS ENTERED
             if not repair.operations:
                  raise UserError('Repair Costs must be entered before starting repair.')
@@ -352,6 +356,27 @@ class PrimerRepair(models.Model):
             #         if item.product_id.categ_id.name == 'Spare Part':
             #             if item.qty_on_hand <= 0 or item.qty_on_hand < item.product_uom_qty:
             #                 raise UserError('Make sure the repair items listed in the Repair Costs have sufficient qty on hand in the source location indicated.')
+            
+            # Create Stock Moves for Spare Parts
+            Move = self.env['stock.move']
+            moves = self.env['stock.move']
+            for operation in repair.operations:
+                if operation.product_id.categ_id.name == 'Spare Part':
+                    move = Move.create({
+                        'name': operation.name,
+                        'product_id': operation.product_id.id,
+                        'restrict_lot_id': operation.lot_id.id,
+                        'product_uom_qty': operation.product_uom_qty,
+                        'product_uom': operation.product_uom.id,
+                        'partner_id': repair.address_id.id,
+                        'location_id': operation.location_id.id,
+                        'location_dest_id': operation.location_dest_id.id,
+                    })
+                    moves |= move
+                    operation.write({'move_id': move.id, 'state': 'done'})
+            
+            moves.action_done()
+            
             end_date = time.strftime('%m/%d/%y %H:%M:%S')
             repair.write({'ro_ended_date': end_date})
         return True

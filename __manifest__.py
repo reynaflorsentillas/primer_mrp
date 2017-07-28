@@ -37,6 +37,7 @@
         'views/mrp_repair_view.xml',
         'views/stock_move_views.xml',
         'views/stock_picking_view.xml',
+        # 'views/product_template_views.xml',
         'report/mrp_repair_template_repair_order.xml',
         'report/external_layout_header_repair.xml',
         'report/external_layout_header_invoice.xml',

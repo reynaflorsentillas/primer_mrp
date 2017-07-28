@@ -186,7 +186,8 @@
 
                 <xpath expr="//field[@name='sale_team_id']" position="after">
                     <!-- ADDED attrs by SDS -->
-                    <field name="repair_tech" context="{'repair_tech': True}" attrs="{'required': [('state', 'not in', ['draft', 'cancel'])]}"/>
+                    <!--<field name="repair_tech" context="{'repair_tech': True}" attrs="{'required': [('state', 'not in', ['draft', 'cancel'])]}"/>-->
+                    <field name="repair_tech" />
                 </xpath>
 
                 <xpath expr="//field[@name='sale_team_id']" position="attributes">

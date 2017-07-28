@@ -79,13 +79,13 @@ class Picking(models.Model):
                         })
 
                     # UPDATE REPAIR COST ITEMS LOCATION
-                    if repair.state != 'under_repair':
-                        if repair.location_id.id != customer_location_id.id:
-                            repair_line = self.env['mrp.repair.line'].search([('repair_id', '=', repair.id)])
-                            for line in repair_line:
-                                line.write({
-                                    'location_id' : self.location_dest_id.id,
-                                })
+                    # if repair.state != 'under_repair':
+                    #     if repair.location_id.id != customer_location_id.id:
+                    #         repair_line = self.env['mrp.repair.line'].search([('repair_id', '=', repair.id)])
+                    #         for line in repair_line:
+                    #             line.write({
+                    #                 'location_id' : self.location_dest_id.id,
+                    #             })
 
 
                 # STATISTICS
@@ -100,20 +100,39 @@ class Picking(models.Model):
 
                                 Move = self.env['stock.move']
                                 moves = self.env['stock.move']
-                                for operation in repair.operations:
-                                    move = Move.create({
-                                        'name': operation.name,
-                                        'product_id': operation.product_id.id,
-                                        'restrict_lot_id': operation.lot_id.id,
-                                        'product_uom_qty': operation.product_uom_qty,
-                                        'product_uom': operation.product_uom.id,
-                                        'partner_id': repair.address_id.id,
-                                        'location_id': operation.location_id.id,
-                                        'location_dest_id': operation.location_dest_id.id,
-                                    })
-                                    moves |= move
-                                    operation.write({'move_id': move.id, 'state': 'done'})
+                                # for operation in repair.operations:
+                                #     move = Move.create({
+                                #         'name': operation.name,
+                                #         'product_id': operation.product_id.id,
+                                #         'restrict_lot_id': operation.lot_id.id,
+                                #         'product_uom_qty': operation.product_uom_qty,
+                                #         'product_uom': operation.product_uom.id,
+                                #         'partner_id': repair.address_id.id,
+                                #         'location_id': operation.location_id.id,
+                                #         'location_dest_id': operation.location_dest_id.id,
+                                #     })
+                                #     moves |= move
+                                #     operation.write({'move_id': move.id, 'state': 'done'})
+                                # moves.action_done()
+
+                                move = Move.create({
+                                    'name': repair.name,
+                                    'product_id': repair.product_id.id,
+                                    'product_uom': repair.product_uom.id or repair.product_id.uom_id.id,
+                                    'product_uom_qty': repair.product_qty,
+                                    'partner_id': repair.address_id.id,
+                                    'location_id': repair.location_id.id,
+                                    'location_dest_id': repair.location_dest_id.id,
+                                    'restrict_lot_id': repair.lot_id.id,
+                                })
+                                moves |= move
                                 moves.action_done()
+
+                                if move:
+                                    repair.sudo().write({
+                                        'location_id': move.id
+                                    })
+
                         # RECEIVE OUT
                         else:
                             _logger.info('RECEIVE OUT')
