@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <menuitem id="menu_repair_order2" parent="mrp_repair.menu_repair_order" groups="stock.group_stock_user" name="Repairs" sequence="10" action="mrp_repair.action_repair_order_tree" />
+        
+        <menuitem id="menu_repair_configuration" parent="mrp_repair.menu_repair_order" groups="primer_extend_security_access.fpt_group_repair_central_warehouse" name="Configuration" sequence="20" />
+        <menuitem id="menu_repair_status" parent="primer_mrp.menu_repair_configuration" groups="primer_extend_security_access.fpt_group_repair_central_warehouse" name="Repair Status" sequence="10" action="action_repair_status" />
+        <menuitem id="menu_repair_routing" parent="primer_mrp.menu_repair_configuration" groups="primer_extend_security_access.fpt_group_repair_central_warehouse" name="Repair Routing" sequence="20" action="action_repair_routing" />
+
+    </data>
+</odoo>

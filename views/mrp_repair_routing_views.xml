@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="primer_view_repair_routng_tree" model="ir.ui.view">
+            <field name="name">primer.mrp.repair.routing.tree</field>
+            <field name="model">mrp.repair.routing</field>
+            <field name="arch" type="xml">
+                <tree string="Repair Routing">
+                    <field name="name" />
+                    <field name="route" />
+                    <field name="route_warehouse" />
+                </tree>
+            </field>
+        </record>
+
+        <record id="primer_view_repair_routing_form" model="ir.ui.view">
+            <field name="name">primer.mrp.repair.routing.form</field>
+            <field name="model">mrp.repair.routing</field>
+            <field name="arch" type="xml">
+                <form string="Repair Routing">
+                    <sheet>
+                        <group>
+                            <field name="name" />
+                            <field name="route" />
+                            <field name="route_warehouse" attrs="{'required': [('route', 'not in', ['thirdparty', 'customer'])]}"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_repair_routing" model="ir.actions.act_window">
+            <field name="name">Repair Routing</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mrp.repair.routing</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <!--<menuitem id="menu_repair_configuration" parent="mrp_repair.menu_repair_order" groups="stock.group_stock_user" name="Configuration" sequence="20"/>
+        <menuitem id="menu_repair_status" parent="primer_mrp.menu_repair_configuration" groups="stock.group_stock_user" name="Repair Status" sequence="10" action="action_repair_status_tree"/>-->
+
+    </data>
+</odoo>

@@ -226,6 +226,18 @@ class PrimerRepair(models.Model):
                     # seconds = seconds % 60
                     record.store_custret_reaction_time = timeDiff.seconds
 
+    # Add 5 business days to transfer order scheduled date
+    def set_transfer_scheduled_date(self, from_date, add_days):
+        business_days_to_add = add_days
+        current_date = from_date
+        while business_days_to_add > 0:
+            current_date += timedelta(days=1)
+            weekday = current_date.weekday()
+            if weekday >= 5:
+                continue
+            business_days_to_add -= 1
+        return current_date
+
     @api.model
     def create(self, values):
         location_dest_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
@@ -288,7 +300,7 @@ class PrimerRepair(models.Model):
         current_location_id = self.location_id
         location_dest_id = self.location_dest_id
         name = self.name
-        scheduled_date = datetime.now() + timedelta(days=5)
+        scheduled_date = self.set_transfer_scheduled_date(datetime.now(), 5)
         
         warehouse_id = self.env['stock.warehouse'].search([('lot_stock_id', '=', current_location_id.id)])
         picking_type_name = warehouse_id.code + '-RECV Repair Item from Customer'
@@ -327,7 +339,7 @@ class PrimerRepair(models.Model):
 
         for repair in self:
             # VALIDATE IF REPAIR TECHNICIAN ENTERED
-            If not repair.repair_tech:
+            if not repair.repair_tech:
                 raise UserError('Repair technician must be entered before starting repair.')
 
             # VALIDATE REPAIR COSTS ENTERED
@@ -358,24 +370,24 @@ class PrimerRepair(models.Model):
             #                 raise UserError('Make sure the repair items listed in the Repair Costs have sufficient qty on hand in the source location indicated.')
             
             # Create Stock Moves for Spare Parts
-            Move = self.env['stock.move']
-            moves = self.env['stock.move']
-            for operation in repair.operations:
-                if operation.product_id.categ_id.name == 'Spare Part':
-                    move = Move.create({
-                        'name': operation.name,
-                        'product_id': operation.product_id.id,
-                        'restrict_lot_id': operation.lot_id.id,
-                        'product_uom_qty': operation.product_uom_qty,
-                        'product_uom': operation.product_uom.id,
-                        'partner_id': repair.address_id.id,
-                        'location_id': operation.location_id.id,
-                        'location_dest_id': operation.location_dest_id.id,
-                    })
-                    moves |= move
-                    operation.write({'move_id': move.id, 'state': 'done'})
-            
-            moves.action_done()
+            # Move = self.env['stock.move']
+            # moves = self.env['stock.move']
+            # for operation in repair.operations:
+            #     if operation.product_id.categ_id.name == 'Spare Part':
+            #         _logger.info('REIN')
+            #         move = Move.create({
+            #             'name': operation.name,
+            #             'product_id': operation.product_id.id,
+            #             'restrict_lot_id': operation.lot_id.id,
+            #             'product_uom_qty': operation.product_uom_qty,
+            #             'product_uom': operation.product_uom.id,
+            #             'partner_id': repair.address_id.id,
+            #             'location_id': operation.location_id.id,
+            #             'location_dest_id': operation.location_dest_id.id,
+            #         })
+            #         moves |= move
+            #         operation.write({'move_id': move.id, 'state': 'done'})
+            # moves.action_done()
             
             end_date = time.strftime('%m/%d/%y %H:%M:%S')
             repair.write({'ro_ended_date': end_date})
@@ -392,7 +404,7 @@ class PrimerRepair(models.Model):
         update_date = time.strftime('%m/%d/%y %H:%M:%S')
         current_status_history = self.status_history 
         new_status_history = ''
-        scheduled_date = datetime.now() + timedelta(days=5)
+        scheduled_date = self.set_transfer_scheduled_date(datetime.now(), 5)
         
         # STATUS
         if values.get('status'):
@@ -601,7 +613,9 @@ class PrimerRepairRouting(models.Model):
             self.name = 'Central Warehouse'
         elif self.route == 'thirdparty':
             self.name = '3rd Party Vendor'
+            self.route_warehouse = None
         elif self.route == 'customer':
             self.name = 'Customer'
+            self.route_warehouse = None
         else:
             self.name = self.route_warehouse.name

@@ -197,20 +197,5 @@
             </field>
         </record>
 
-
-        <record id="primer_view_repair_routing_form" model="ir.ui.view">
-            <field name="name">primer.mrp.repair.routing.form</field>
-            <field name="model">mrp.repair.routing</field>
-            <field name="arch" type="xml">
-                <form string="Routing">
-                    <group>
-                        <field name="name" />
-                        <field name="route" />
-                        <field name="route_warehouse" />
-                    </group>
-                </form>
-            </field>
-        </record>
-
     </data>
 </odoo>
