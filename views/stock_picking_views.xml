@@ -14,5 +14,55 @@
             </field>
         </record>
 
+        <!--
+            ADDED BY SDS
+        -->
+        <!-- TO VIEW THE DRAFT STATUS IN DASHBOARD -->
+        <record id="primer_stock_picking_type_kanban_extend" model="ir.ui.view">
+            <field name="name">primer.stock.picking.type.kanban.extend</field>
+            <field name="model">stock.picking.type</field>
+            <field name="inherit_id" ref="stock.stock_picking_type_kanban" />
+            <field name="arch" type="xml">
+
+                <xpath expr="//div[@t-if='record.count_picking_waiting.raw_value &gt; 0']" position="before">
+                    <div t-if="record.count_picking_draft.raw_value &gt; 0" class="row">
+                        <div class="col-xs-9">
+                            <a name="get_stock_picking_action_picking_tree_draft" type="object">
+                                Draft
+                            </a>
+                        </div>
+                        <div class="col-xs-3">
+                            <field name="count_picking_draft"/>
+                        </div>
+                    </div>
+                </xpath>
+
+            </field>
+        </record>
+        <!-- ACTION WHEN CLICKING THE DRAFT STATUS -->
+        <record id="action_picking_tree_draft" model="ir.actions.act_window">
+            <field name="name">Draft Transfers</field>
+            <field name="res_model">stock.picking</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,kanban,form,calendar</field>
+            <field name="domain"></field>
+            <field name="context">{
+                    'search_default_picking_type_id': [active_id],
+                    'default_picking_type_id': active_id,
+                    'contact_display': 'partner_address',
+                    'search_default_draft': 1,
+            }
+            </field>
+            <field name="search_view_id" ref="stock.view_picking_internal_search"/>
+            <field name="help" type="html">
+              <p class="oe_view_nocontent_create">
+                Click here to create a new transfer.
+              </p><p>
+                You can either do it immediately or mark it as Todo for future processing. Use your scanner to validate the transferred quantity quicker.
+              </p>
+            </field>
+        </record>
+
     </data>
 </odoo>

@@ -5,6 +5,14 @@ import time
 import logging
 _logger = logging.getLogger(__name__)
 
+class PickingType(models.Model):
+    _inherit = 'stock.picking.type'
+
+    @api.multi
+    def get_stock_picking_action_picking_tree_draft(self):
+        # TDE TODO check to have one view + custo in methods
+        return self._get_action('primer_mrp.action_picking_tree_draft')
+
 class Picking(models.Model):
     _inherit = 'stock.picking'
 
@@ -39,7 +47,8 @@ class Picking(models.Model):
         for pick in self:
             origin = pick.origin
             is_return = False
-            check_repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
+            #Added SUDO by SDS
+            check_repair = self.env['mrp.repair'].sudo().search([('name', '=', origin)], limit=1)
 
             if not len(check_repair):
                 # CHECK IF RETURN
@@ -48,7 +57,8 @@ class Picking(models.Model):
                     origin = transfer_order.origin
                     is_return = True
 
-            repair = self.env['mrp.repair'].search([('name', '=', origin)], limit=1)
+            #Added SUDO by SDS
+            repair = self.env['mrp.repair'].sudo().search([('name', '=', origin)], limit=1)
             if repair:
                 # UPDATE REPAIR
                 if self.state == 'done':
@@ -95,8 +105,8 @@ class Picking(models.Model):
                             if pick.location_dest_id.id == cust_location_id.id:
                                 repair.write({'ri_ret_to_cust_date': time.strftime('%m/%d/%y %H:%M:%S')})
 
-                                # Move = self.env['stock.move']
-                                # moves = self.env['stock.move']
+                                Move = self.env['stock.move']
+                                moves = self.env['stock.move']
                                 # for operation in repair.operations:
                                 #     move = Move.create({
                                 #         'name': operation.name,
@@ -112,18 +122,18 @@ class Picking(models.Model):
                                 #     operation.write({'move_id': move.id, 'state': 'done'})
                                 # moves.action_done()
 
-                                # move = Move.create({
-                                #     'name': repair.name,
-                                #     'product_id': repair.product_id.id,
-                                #     'product_uom': repair.product_uom.id or repair.product_id.uom_id.id,
-                                #     'product_uom_qty': repair.product_qty,
-                                #     'partner_id': repair.address_id.id,
-                                #     'location_id': repair.location_id.id,
-                                #     'location_dest_id': repair.location_dest_id.id,
-                                #     'restrict_lot_id': repair.lot_id.id,
-                                # })
-                                # moves |= move
-                                # moves.action_done()
+                                move = Move.create({
+                                    'name': repair.name,
+                                    'product_id': repair.product_id.id,
+                                    'product_uom': repair.product_uom.id or repair.product_id.uom_id.id,
+                                    'product_uom_qty': repair.product_qty,
+                                    'partner_id': repair.address_id.id,
+                                    'location_id': repair.location_id.id,
+                                    'location_dest_id': repair.location_dest_id.id,
+                                    'restrict_lot_id': repair.lot_id.id,
+                                })
+                                moves |= move
+                                moves.action_done()
 
                                 # if move:
                                 #     repair.sudo().write({

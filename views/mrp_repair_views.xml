@@ -161,8 +161,6 @@
             </field>
         </record>
 
-
-
         <!-- READONLY  PRICE UNIT/COST FOR REPAIR USER  SDS -->
         <record id="primer_extend_security_view_repair_order_form" model="ir.ui.view">
             <field name="name">primer.extend.security.view.repair.order.form</field>
@@ -187,7 +185,7 @@
                 <xpath expr="//field[@name='sale_team_id']" position="after">
                     <!-- ADDED attrs by SDS -->
                     <!--<field name="repair_tech" context="{'repair_tech': True}" attrs="{'required': [('state', 'not in', ['draft', 'cancel'])]}"/>-->
-                    <field name="repair_tech" />
+                    <field name="repair_tech" context="{'repair_tech': True}" />
                 </xpath>
 
                 <xpath expr="//field[@name='sale_team_id']" position="attributes">
