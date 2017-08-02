@@ -331,8 +331,8 @@ class PrimerRepair(models.Model):
         model_stock_picking = self.env['stock.picking'].search([('origin','=', self.name), 
                                                                 ('picking_type_id.default_location_dest_id','=', self.location_id.id),  
                                                                 ('picking_type_id.default_location_src_id','=', self.location_dest_id.id),])
-        if model_stock_picking:
-            if model_stock_picking.state != 'done':
+        for pick in model_stock_picking:
+            if pick.state != 'done':
                 raise UserError('Item to be Repair has not yet receive. Please confirm in Inventory.')
         # else:
             # raise UserError('Item to be Repair has not yet receive. Please confirm in Inventory.')
@@ -374,7 +374,7 @@ class PrimerRepair(models.Model):
             moves = self.env['stock.move']
             for operation in repair.operations:
                 if operation.product_id.categ_id.name == 'Spare Part':
-                    _logger.info('REIN')
+                    # _logger.info('REIN')
                     move = Move.create({
                         'name': operation.name,
                         'product_id': operation.product_id.id,

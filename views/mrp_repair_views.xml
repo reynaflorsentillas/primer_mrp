@@ -21,6 +21,11 @@
             <field name="inherit_id" ref="mrp_repair.view_repair_order_form" />
             <field name="arch" type="xml">
 
+                <!-- OVERRIED CANCEL BUTTON OF REPAIR -->
+                <!--<xpath expr="//form/header/button[7]" position="attributes">
+                    <attribute name="states">draft,confirmed,under_repair</attribute>
+                </xpath>-->
+
                 <xpath expr="//field[@name='name']" position="attributes">
                     <attribute name="attrs">{'readonly': [('state', '=', 'done')]}</attribute>
                 </xpath>
