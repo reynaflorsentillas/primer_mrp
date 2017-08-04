@@ -171,7 +171,7 @@
             <field name="name">primer.extend.security.view.repair.order.form</field>
             <field name="model">mrp.repair</field>
             <field name="inherit_id" ref="primer_mrp.primer_view_repair_order_form"/>
-            <field name="groups_id" eval="[(6,0, [ref('primer_extend_security_access.fpt_group_repair_user')])]"/>
+            <field name="groups_id" eval="[(6,0, [ref('primer_extend_security_access.fpt_group_repair_user'),ref('primer_extend_security_access.fpt_group_repair_store_manager')])]"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='operations']/tree//field[@name='price_unit']" position="attributes">
                     <attribute name="readonly">1</attribute>
