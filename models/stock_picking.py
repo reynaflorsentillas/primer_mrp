@@ -63,6 +63,7 @@ class Picking(models.Model):
                 # UPDATE REPAIR
                 if self.state == 'done':
                     customer_location_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
+                    vendor_location_id = self.env['stock.location'].search([('name', '=', 'Vendors')], limit=1)
 
                     # warehouse_id = self.env.user.warehouse_id
                     # warehouse = self.env['stock.warehouse'].search([('id', '=', warehouse_id.id)])
@@ -78,6 +79,14 @@ class Picking(models.Model):
                             'routing' : None,
                             'lot_id' : lot_id.id,
                         })
+                    elif self.location_id.id == vendor_location_id.id and self.location_dest_id.id != repair.ro_store_location.id:
+                        
+                        repair.sudo().write({
+                            'location_id' : self.location_dest_id.id,
+                            'location_dest_id' : repair.ro_store_location.id,
+                            'routing' : None,
+                        })
+
                     else:
                         repair.sudo().write({
                             'location_id': self.location_dest_id.id,

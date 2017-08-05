@@ -287,6 +287,9 @@ class PrimerRepair(models.Model):
     def action_repair_confirm(self):
         super(PrimerRepair, self).action_repair_confirm()
         for repair in self:
+            if not repair.ro_promised_date:
+                raise UserError('Promised date must be entered before confirming repair.')
+            
             confirm_date = time.strftime('%m/%d/%y %H:%M:%S')
             repair.write({'ro_confirmed_date': confirm_date})
             # CREATE TRANSFER ORDER UPON CONFIRMATION OF REPAIR
@@ -318,6 +321,7 @@ class PrimerRepair(models.Model):
                 'product_uom' : product_uom.id,
                 'product_uom_qty' : 1.00,
                 'name': name,
+                'origin' : name,
             })]
         })
 
@@ -333,7 +337,7 @@ class PrimerRepair(models.Model):
                                                                 ('picking_type_id.default_location_src_id','=', self.location_dest_id.id),])
         for pick in model_stock_picking:
             if pick.state != 'done':
-                raise UserError('Item to be Repair has not yet receive. Please confirm in Inventory.')
+                raise UserError('Item to be Repaired has not been received. Please confirm in inventory.')
         # else:
             # raise UserError('Item to be Repair has not yet receive. Please confirm in Inventory.')
 
@@ -347,10 +351,17 @@ class PrimerRepair(models.Model):
                  raise UserError('Repair Costs must be entered before starting repair.')
 
             # VALIDATE SPARE PARTS STOCK
+            # NEW RULE: ALLOW IF AT LEAST ONE SPARE PART HAVE MORE THAN ZERO QUANTITY
+            spare_part_with_qty = 0
             for operation in repair.operations:
                 if operation.product_id.categ_id.name == 'Spare Part':
-                    if operation.qty_on_hand <= 0:
-                        raise UserError('Not enough stock for spare part: ' + str(operation.product_id.name))
+                    # if operation.qty_on_hand <= 0:
+                    #     raise UserError('Not enough stock for spare part: ' + str(operation.product_id.name))
+                    if operation.qty_on_hand > 0:
+                        spare_part_with_qty += 1
+            
+            if spare_part_with_qty == 0:
+                raise UserError('Not enough stock for spare parts in repair cost.')
 
         super(PrimerRepair, self).action_repair_start()
         start_date = time.strftime('%m/%d/%y %H:%M:%S')
@@ -364,11 +375,26 @@ class PrimerRepair(models.Model):
             #     for item in repair.operations:
             #         # if item.location_id != repair.location_id:
             #         #     raise UserError('Make sure the source location of the repair items match the current location of the RO.')
-            #         # CHECK IF NOT DELIVERED TO CUSTOMER
-            #         if item.product_id.categ_id.name == 'Spare Part':
-            #             if item.qty_on_hand <= 0 or item.qty_on_hand < item.product_uom_qty:
-            #                 raise UserError('Make sure the repair items listed in the Repair Costs have sufficient qty on hand in the source location indicated.')
+            #         # CHECK IF NOT DELIVERED TO CUSTOME
             
+            # VALIDATE IF REPAIR TECHNICIAN ENTERED
+            if not repair.repair_tech:
+                raise UserError('Repair technician must be entered before ending repair.')
+
+            # VALIDATE REPAIR COSTS ENTERED
+            if not repair.operations:
+                 raise UserError('Repair Costs must be entered before ending repair.')
+
+            # VALIDATE SPARE PARTS
+            for operation in repair.operations:
+                if operation.location_id != repair.location_id:
+                    raise UserError('Cannot end repair. Source Location of repair cost must be equal to the current location of repair order.')
+                # if repair.location_id != operation.location_id:
+                #     raise UserError('Cannot end repair. Source Location of repair cost: ' + str(operation.product_id.name + 'must be equal to the current location of repair order.')
+                if operation.product_id.categ_id.name == 'Spare Part':
+                    if operation.qty_on_hand <= 0:
+                        raise UserError('Cannot end repair. Not enough stock for spare part: ' + str(operation.product_id.name))
+
             # Create Stock Moves for Spare Parts
             Move = self.env['stock.move']
             moves = self.env['stock.move']
@@ -377,6 +403,7 @@ class PrimerRepair(models.Model):
                     # _logger.info('REIN')
                     move = Move.create({
                         'name': operation.name,
+                        'origin': repair.name,
                         'product_id': operation.product_id.id,
                         'restrict_lot_id': operation.lot_id.id,
                         'product_uom_qty': operation.product_uom_qty,
@@ -422,7 +449,7 @@ class PrimerRepair(models.Model):
         # DATE PROMISED
         if values.get('ro_promised_date'):
             promised_date = values.get('ro_promised_date')
-            new_status_history += update_user + ' ' + update_date + ' - ' + 'Promise date committed: ' + promised_date + '\n'
+            new_status_history += update_user + ' ' + update_date + ' - ' + 'Promised date committed: ' + promised_date + '\n'
 
         #  STATUS LOG 
         if current_status_history:
@@ -452,7 +479,14 @@ class PrimerRepair(models.Model):
 
             if route == 'central':
                 if route_warehouse:
-                    picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'internal'),('warehouse_id','=',route_warehouse.id),('active', '=', True)], limit=1)
+                    picking_type_code = 'internal'
+
+                    # RETURN FROM 3RD PARTY VENDOR TO WAREHOUSE
+                    vendor_location_id = self.env['stock.location'].search([('name', '=', 'Vendors')], limit=1)
+                    if self.location_id.id == vendor_location_id.id:
+                        picking_type_code = 'incoming'
+
+                    picking_type_id = self.env['stock.picking.type'].search([('code', '=', picking_type_code),('warehouse_id','=',route_warehouse.id),('active', '=', True)], limit=1)
                     location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
                     values['last_route'] = selected_routing
                     values['last_route_non_cust'] = selected_routing
@@ -461,7 +495,7 @@ class PrimerRepair(models.Model):
                     raise UserError("No route warehouse defined for the selected routing. Please update routing first.")
                 
             elif route == 'servicecenter': 
-                if route_warehouse:               
+                if route_warehouse:
                     picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'internal'),('warehouse_id','=',route_warehouse.id),('active', '=', True)], limit=1)
                     location_dest_id = self.env['stock.picking.type'].browse(picking_type_id.id).default_location_dest_id
                     values['last_route'] = selected_routing
@@ -560,7 +594,8 @@ class PrimerRepairLine(models.Model):
     #Override Method
     @api.multi
     def write(self, vals):
-        if self.env.ref('primer_extend_security_access.fpt_group_repair_user') in self.env.user.groups_id:
+        if self.env.ref('primer_extend_security_access.fpt_group_repair_user') in self.env.user.groups_id or \
+           self.env.ref('primer_extend_security_access.fpt_group_repair_store_manager') in self.env.user.groups_id:
             #Get if Product has Been Changed
             if vals.get('product_id'):
                 model_product_product = self.env['product.product'].search([('id', '=', vals['product_id'])])
@@ -575,7 +610,8 @@ class PrimerRepairLine(models.Model):
 
     @api.model
     def create(self,vals):
-        if self.env.ref('primer_extend_security_access.fpt_group_repair_user') in self.env.user.groups_id:
+        if self.env.ref('primer_extend_security_access.fpt_group_repair_user') in self.env.user.groups_id or \
+           self.env.ref('primer_extend_security_access.fpt_group_repair_store_manager') in self.env.user.groups_id:
             model_mrp_repair = self.env['mrp.repair'].search([('id', '=', vals['repair_id'])])
             model_product_product = self.env['product.product'].search([('id', '=', vals['product_id'])])
             partner = model_mrp_repair.partner_id
