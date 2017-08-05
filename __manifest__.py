@@ -40,7 +40,7 @@
         'views/stock_move_views.xml',
         'views/stock_picking_views.xml',
         # 'views/product_template_views.xml',
-        'views/mrp_repair_menu.xml',
+        # 'views/mrp_repair_menu.xml',
         'report/mrp_repair_template_repair_order.xml',
         'report/external_layout_header_repair.xml',
         'report/external_layout_header_invoice.xml',
