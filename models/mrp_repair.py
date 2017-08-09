@@ -20,8 +20,10 @@ class PrimerRepair(models.Model):
 
     @api.model
     def _filter_repair_tech(self):
+        # FILTER REPAIR TECH WITH JOB AND DEPARTMENT
         job_id = self.env['hr.job'].search([('name', '=', 'Repair Tech')])
-        return [('job_id', '=', job_id.id)]
+        department_id = self.env['hr.department'].search([('name', '=', self.env.user.sale_team_id.name)])
+        return [('job_id', '=', job_id.id),('department_id', '=', department_id.id)]
 
 
     # OVERRIDE FIELDS
@@ -37,7 +39,7 @@ class PrimerRepair(models.Model):
     routing = fields.Many2one('mrp.repair.routing', string='Routing')
     last_route = fields.Many2one('mrp.repair.routing', string='Last Route', readonly=True)
     last_route_non_cust = fields.Many2one('mrp.repair.routing', string='Last Route Non Cust', readonly=True)
-    status = fields.Many2one('mrp.repair.status', 'Status')
+    status = fields.Many2one('mrp.repair.status', 'User Status')
     status_history = fields.Text('Status History')
     is_in_customer = fields.Boolean(string="Delivered to Customer", compute='_compute_customer_location', store=True)
     repair_tech = fields.Many2one('hr.employee', 'Repair Tech', domain=_filter_repair_tech)
@@ -424,6 +426,15 @@ class PrimerRepair(models.Model):
     def action_repair_done(self):
         res = {}
         return res
+
+    @api.multi
+    def action_repair_cancel_force(self, cancel_status):
+        if self.filtered(lambda repair: repair.state == 'done'):
+            raise UserError(_("Cannot force cancel completed repairs."))
+        if any(repair.invoiced for repair in self):
+            raise UserError(_('Repair order is already invoiced.'))
+        self.mapped('operations').write({'state': 'cancel'})
+        return self.write({'state': 'cancel', 'status' : cancel_status.id})
     
     @api.multi
     def write(self, values):
@@ -561,7 +572,8 @@ class PrimerRepairLine(models.Model):
     _inherit = 'mrp.repair.line'
 
     # NEW FIELDS
-    qty_on_hand = fields.Float(string='Quantity on Hand', readonly=True, compute='_compute_qty_on_hand')
+    qty_on_hand = fields.Float(string='Actual Quantity', readonly=True, compute='_compute_qty_on_hand')
+    qty_available = fields.Float(string='Available Quantity', readonly=True, compute='_compute_qty_available')
 
     # OVERRIDE FIELDS
     type = fields.Selection(default='add')
@@ -589,6 +601,15 @@ class PrimerRepairLine(models.Model):
                 stock_quant = self.env['stock.quant'].search([('product_id', '=', record.product_id.id),('location_id', '=', record.location_id.id)])
                 for stock in stock_quant:
                     record.qty_on_hand += stock.qty
+
+    @api.multi
+    @api.depends('product_id','location_id')
+    def _compute_qty_available(self):
+        for record in self:
+            if record.product_id.categ_id.name == 'Spare Part':
+                stock_quant = self.env['stock.quant'].search([('product_id', '=', record.product_id.id),('location_id', '=', record.location_id.id)])
+                for stock in stock_quant:
+                    record.qty_available += stock.qty
 
     #SDS
     #Override Method
@@ -618,6 +639,36 @@ class PrimerRepairLine(models.Model):
             pricelist = model_mrp_repair.pricelist_id
             price = pricelist.get_product_price(model_product_product, self.product_uom_qty, partner)
             vals['price_unit'] = price
+
+        # Create Stock Moves for Spare Parts
+        # Stock Reservation
+        # if vals.get('product_id'):
+        #     name = vals.get('name')
+        #     product_id = vals.get('product_id')
+        #     lot_id = vals.get('lot_id')
+        #     product_uom_qty = vals.get('product_uom_qty')
+        #     product_uom = vals.get('product_uom')
+        #     location_id = vals.get('location_id')
+        #     location_dest_id = vals.get('location_dest_id')
+
+        #     Move = self.env['stock.move']
+        #     moves = self.env['stock.move']
+        #     if product_id.categ_id.name == 'Spare Part':
+        #         # _logger.info('REIN')
+        #         move = Move.create({
+        #             'name': name,
+        #             # 'origin': repair.name,
+        #             'product_id': product_id.id,
+        #             'restrict_lot_id': lot_id.id,
+        #             'product_uom_qty': product_uom_qty,
+        #             'product_uom': product_uom.id,
+        #             # 'partner_id': repair.address_id.id,
+        #             'location_id': location_id.id,
+        #             'location_dest_id': location_dest_id.id,
+        #         })
+        #         moves |= move
+        #         operation.write({'move_id': move.id, 'state': 'assigned'})
+        #     moves.action_assign()
 
         res = super(PrimerRepairLine, self).create(vals)
         return res

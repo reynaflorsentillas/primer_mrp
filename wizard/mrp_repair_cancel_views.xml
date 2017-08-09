@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!--  Cancel Repair -->
+        
+        <record id="view_cancel_repair" model="ir.ui.view">
+            <field name="name">Cancel Repair</field>
+            <field name="model">primer.mrp.repair.cancel</field>
+            <field name="arch" type="xml">
+                <form string="Cancel Repair Order">
+                    <!--<sheet>-->
+                    <group>
+                        <!--<label string="Please select the cancellation status."/>-->
+                        <field name="status" string="Select Cancel Status" domain="[('name', 'like', 'Cancelled')]" options="{'no_create_edit': True}"/>
+                    </group>
+                    <footer>
+                        <button name="cancel_repair" string="Confirm" type="object" class="btn-primary"/>
+                        <button string="Cancel" class="btn-default" special="cancel" />
+                    </footer>
+                    <!--</sheet>-->
+                </form>
+            </field>
+        </record>         
+
+        <record id="action_cancel_repair_force" model="ir.actions.act_window">
+            <field name="name">Cancel Repair Order</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">primer.mrp.repair.cancel</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record> 
+        
+    </data>
+</odoo>    
