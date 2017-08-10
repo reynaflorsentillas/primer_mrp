@@ -9,16 +9,13 @@
             <field name="model">primer.mrp.repair.cancel</field>
             <field name="arch" type="xml">
                 <form string="Cancel Repair Order">
-                    <!--<sheet>-->
-                    <group>
-                        <!--<label string="Please select the cancellation status."/>-->
+                    <group string="This operation will cancel the repair and will release reserved stocks.">
                         <field name="status" string="Select Cancel Status" domain="[('name', 'like', 'Cancelled')]" options="{'no_create_edit': True}"/>
                     </group>
                     <footer>
                         <button name="cancel_repair" string="Confirm" type="object" class="btn-primary"/>
                         <button string="Cancel" class="btn-default" special="cancel" />
                     </footer>
-                    <!--</sheet>-->
                 </form>
             </field>
         </record>         

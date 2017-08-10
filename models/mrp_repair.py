@@ -291,11 +291,17 @@ class PrimerRepair(models.Model):
         for repair in self:
             if not repair.ro_promised_date:
                 raise UserError('Promised date must be entered before confirming repair.')
+
+            # CREATE TRANSFER ORDER UPON CONFIRMATION OF REPAIR
+            for operation in repair.operations:
+                if operation.product_id.categ_id.name == 'Spare Part':
+                    if operation.qty_available <= 0:
+                        raise UserError('Cannot confirm repair. Not enough available stock for spare part: ' + str(operation.product_id.name))
             
+            self.create_transfer_order()
+            self.create_repair_stock_reservation()
             confirm_date = time.strftime('%m/%d/%y %H:%M:%S')
             repair.write({'ro_confirmed_date': confirm_date})
-            # CREATE TRANSFER ORDER UPON CONFIRMATION OF REPAIR
-            self.create_transfer_order() 
         return True
 
     def create_transfer_order(self):
@@ -327,7 +333,23 @@ class PrimerRepair(models.Model):
             })]
         })
 
-
+    # RESERVE SPARE PARTS
+    def create_repair_stock_reservation(self):
+        for operation in self.operations:
+            if operation.product_id.categ_id.name == 'Spare Part':
+                Reserve = self.env['mrp.repair.stock.reservation'].create({
+                    'name': operation.name,
+                    'origin': self.name,
+                    'restrict_lot_id': operation.lot_id.id,
+                    'product_id': operation.product_id.id,
+                    'product_uom_qty': operation.product_uom_qty,
+                    'product_uom': operation.product_uom.id,
+                    'partner_id': self.address_id.id,
+                    'location_id': operation.location_id.id,
+                    'location_dest_id': operation.location_dest_id.id
+                })
+                Reserve.reserve()
+                operation.write({'move_id': Reserve.move_id.id})
 
     @api.multi
     def action_repair_start(self):
@@ -353,17 +375,21 @@ class PrimerRepair(models.Model):
                  raise UserError('Repair Costs must be entered before starting repair.')
 
             # VALIDATE SPARE PARTS STOCK
+
             # NEW RULE: ALLOW IF AT LEAST ONE SPARE PART HAVE MORE THAN ZERO QUANTITY
-            spare_part_with_qty = 0
+            # spare_part_with_qty_available = 0
             for operation in repair.operations:
-                if operation.product_id.categ_id.name == 'Spare Part':
+                if operation.location_id != repair.location_id:
+                    raise UserError('Cannot start repair. Source Location of repair cost must be equal to the current location of repair order.')
+                
+                # if operation.product_id.categ_id.name == 'Spare Part':
                     # if operation.qty_on_hand <= 0:
                     #     raise UserError('Not enough stock for spare part: ' + str(operation.product_id.name))
-                    if operation.qty_on_hand > 0:
-                        spare_part_with_qty += 1
+                    # if operation.qty_available > 0:
+                        # spare_part_with_qty_available += 1
             
-            if spare_part_with_qty == 0:
-                raise UserError('Not enough stock for spare parts in repair cost.')
+            # if spare_part_with_qty_available == 0:
+                # raise UserError('Not enough available stock for spare parts in repair cost.')
 
         super(PrimerRepair, self).action_repair_start()
         start_date = time.strftime('%m/%d/%y %H:%M:%S')
@@ -373,11 +399,6 @@ class PrimerRepair(models.Model):
     def action_repair_end(self):
         super(PrimerRepair, self).action_repair_end()
         for repair in self:
-            # if repair.is_in_customer == False:
-            #     for item in repair.operations:
-            #         # if item.location_id != repair.location_id:
-            #         #     raise UserError('Make sure the source location of the repair items match the current location of the RO.')
-            #         # CHECK IF NOT DELIVERED TO CUSTOME
             
             # VALIDATE IF REPAIR TECHNICIAN ENTERED
             if not repair.repair_tech:
@@ -391,31 +412,20 @@ class PrimerRepair(models.Model):
             for operation in repair.operations:
                 if operation.location_id != repair.location_id:
                     raise UserError('Cannot end repair. Source Location of repair cost must be equal to the current location of repair order.')
-                # if repair.location_id != operation.location_id:
-                #     raise UserError('Cannot end repair. Source Location of repair cost: ' + str(operation.product_id.name + 'must be equal to the current location of repair order.')
-                if operation.product_id.categ_id.name == 'Spare Part':
-                    if operation.qty_on_hand <= 0:
-                        raise UserError('Cannot end repair. Not enough stock for spare part: ' + str(operation.product_id.name))
+                # if operation.product_id.categ_id.name == 'Spare Part':
+                #     if operation.qty_available <= 0:
+                #         raise UserError('Cannot end repair. Not enough available stock for spare part: ' + str(operation.product_id.name))
 
-            # Create Stock Moves for Spare Parts
-            Move = self.env['stock.move']
+            # PROCESS RESERVED SPARE PARTS
             moves = self.env['stock.move']
             for operation in repair.operations:
-                if operation.product_id.categ_id.name == 'Spare Part':
-                    # _logger.info('REIN')
-                    move = Move.create({
-                        'name': operation.name,
-                        'origin': repair.name,
-                        'product_id': operation.product_id.id,
-                        'restrict_lot_id': operation.lot_id.id,
-                        'product_uom_qty': operation.product_uom_qty,
-                        'product_uom': operation.product_uom.id,
-                        'partner_id': repair.address_id.id,
-                        'location_id': operation.location_id.id,
-                        'location_dest_id': operation.location_dest_id.id,
-                    })
-                    moves |= move
-                    operation.write({'move_id': move.id, 'state': 'done'})
+                _logger.info('BLEH')
+                reserve_move = self.env['stock.move'].search([('origin', '=', repair.name),('product_id', '=', operation.product_id.id),('state', '=', 'assigned')])
+                if reserve_move:
+                    _logger.info(reserve_move.product_id.name)
+                moves |= reserve_move
+                # operation.write({'move_id': reserve_move.id, 'state': 'done'})
+                operation.write({'state': 'done'})
             moves.action_done()
             
             end_date = time.strftime('%m/%d/%y %H:%M:%S')
@@ -433,6 +443,11 @@ class PrimerRepair(models.Model):
             raise UserError(_("Cannot force cancel completed repairs."))
         if any(repair.invoiced for repair in self):
             raise UserError(_('Repair order is already invoiced.'))
+        
+        # Release reserved spare parts
+        for operation in self.operations:
+            operation.mapped('move_id').action_cancel()
+
         self.mapped('operations').write({'state': 'cancel'})
         return self.write({'state': 'cancel', 'status' : cancel_status.id})
     
@@ -572,7 +587,9 @@ class PrimerRepairLine(models.Model):
     _inherit = 'mrp.repair.line'
 
     # NEW FIELDS
+    # reservation_id = fields.Many2one('stock.move', 'Reserved for Move', index=True, readonly=True)
     qty_on_hand = fields.Float(string='Actual Quantity', readonly=True, compute='_compute_qty_on_hand')
+    qty_reserved = fields.Float(string='Reserved Quantity', readonly=True, compute='_compute_qty_reserved')
     qty_available = fields.Float(string='Available Quantity', readonly=True, compute='_compute_qty_available')
 
     # OVERRIDE FIELDS
@@ -604,12 +621,21 @@ class PrimerRepairLine(models.Model):
 
     @api.multi
     @api.depends('product_id','location_id')
+    def _compute_qty_reserved(self):
+        for record in self:
+            if record.product_id.categ_id.name == 'Spare Part':
+                stock_quant = self.env['stock.quant'].search([('product_id', '=', record.product_id.id),('location_id', '=', record.location_id.id),('reservation_id', '!=', None)])
+                for stock in stock_quant:
+                    record.qty_reserved += stock.qty
+
+    @api.multi
+    @api.depends('product_id','location_id')
     def _compute_qty_available(self):
         for record in self:
             if record.product_id.categ_id.name == 'Spare Part':
-                stock_quant = self.env['stock.quant'].search([('product_id', '=', record.product_id.id),('location_id', '=', record.location_id.id)])
-                for stock in stock_quant:
-                    record.qty_available += stock.qty
+                # stock_quant = self.env['stock.quant'].search([('product_id', '=', record.product_id.id),('location_id', '=', record.location_id.id),('reservation_id', '!=', None)])
+                # for stock in stock_quant:
+                record.qty_available = record.qty_on_hand - record.qty_reserved
 
     #SDS
     #Override Method
@@ -639,36 +665,6 @@ class PrimerRepairLine(models.Model):
             pricelist = model_mrp_repair.pricelist_id
             price = pricelist.get_product_price(model_product_product, self.product_uom_qty, partner)
             vals['price_unit'] = price
-
-        # Create Stock Moves for Spare Parts
-        # Stock Reservation
-        # if vals.get('product_id'):
-        #     name = vals.get('name')
-        #     product_id = vals.get('product_id')
-        #     lot_id = vals.get('lot_id')
-        #     product_uom_qty = vals.get('product_uom_qty')
-        #     product_uom = vals.get('product_uom')
-        #     location_id = vals.get('location_id')
-        #     location_dest_id = vals.get('location_dest_id')
-
-        #     Move = self.env['stock.move']
-        #     moves = self.env['stock.move']
-        #     if product_id.categ_id.name == 'Spare Part':
-        #         # _logger.info('REIN')
-        #         move = Move.create({
-        #             'name': name,
-        #             # 'origin': repair.name,
-        #             'product_id': product_id.id,
-        #             'restrict_lot_id': lot_id.id,
-        #             'product_uom_qty': product_uom_qty,
-        #             'product_uom': product_uom.id,
-        #             # 'partner_id': repair.address_id.id,
-        #             'location_id': location_id.id,
-        #             'location_dest_id': location_dest_id.id,
-        #         })
-        #         moves |= move
-        #         operation.write({'move_id': move.id, 'state': 'assigned'})
-        #     moves.action_assign()
 
         res = super(PrimerRepairLine, self).create(vals)
         return res

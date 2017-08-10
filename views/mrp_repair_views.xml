@@ -27,7 +27,7 @@
                 </xpath>-->
                 <!-- FORCE CANCELLATION OF REPAIR-->
                 <xpath expr="//form/header/button[7]" position="after">
-                    <button name="%(primer_mrp.action_cancel_repair_force)d" states="confirmed,under_repair" type="action" string="Force Cancel Repair"/>
+                    <button name="%(primer_mrp.action_cancel_repair_force)d" states="confirmed,under_repair" type="action" string="Force Cancel"/>
                 </xpath>
 
                 <xpath expr="//field[@name='name']" position="attributes">
@@ -145,6 +145,7 @@
 
                 <xpath expr="//field[@name='operations']/tree//field[@name='location_id']" position="after">
                     <field name="qty_on_hand" />
+                    <field name="qty_reserved" invisible="1" />
                     <field name="qty_available" />
                 </xpath>
 
