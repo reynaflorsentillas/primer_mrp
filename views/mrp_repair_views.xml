@@ -65,14 +65,17 @@
 
                 <xpath expr="//field[@name='guarantee_limit']" position="replace">
                     <field name="valid_warranty" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
-                    <field name="status" />
-                    <field name="ro_promised_date" />
-                    <field name="ro_store_location" invisible="1"/>
+
+                    <!-- ATTRS BY SDS  statusm ro_promised_date 08/06/17-->
+                    <field name="status" attrs="{'readonly': [('is_readonly_ro', '=', True)]}"/>
+                    <field name="ro_promised_date" attrs="{'readonly': [('is_readonly_ro', '=', True)]}"/>
+                    <field name="ro_store_location" invisible="1" attrs="{'readonly': [('is_readonly_ro', '=', True)]}"/>
                 </xpath>
 
                 <xpath expr="//field[@name='location_dest_id']" position="after">
                     <field name="is_in_customer" invisible="1" />
-                    <field name="routing" attrs="{'invisible': ['|','|',('is_in_customer', '=', True),('state', '=', 'draft'),('state', '=', 'cancel')]}" />
+                    <!-- ATTRS BY SDS  routing ('is_readonly_ro', '=', True) 08/05/17-->
+                    <field name="routing" attrs="{'invisible': ['|','|','|',('is_readonly_ro', '=', True),('is_in_customer', '=', True),('state', '=', 'draft'),('state', '=', 'cancel')]}" />
                 </xpath>
                 
                 <notebook position="inside">
@@ -195,8 +198,8 @@
 
                 <xpath expr="//field[@name='sale_team_id']" position="after">
                     <!-- ADDED attrs by SDS -->
-                    <!--<field name="repair_tech" context="{'repair_tech': True}" attrs="{'required': [('state', 'not in', ['draft', 'cancel'])]}"/>-->
-                    <field name="repair_tech" context="{'repair_tech': True}" />
+                    <!-- ADDED attrs by SDS 08/06/2017 is_readonly_ro-->
+                    <field name="repair_tech" context="{'repair_tech': True}" attrs="{'readonly': [('is_readonly_ro', '=', True)]}"/>
                 </xpath>
 
                 <xpath expr="//field[@name='sale_team_id']" position="attributes">

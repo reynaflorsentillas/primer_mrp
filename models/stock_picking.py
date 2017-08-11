@@ -16,12 +16,37 @@ class PickingType(models.Model):
 class Picking(models.Model):
     _inherit = 'stock.picking'
 
+    #FOR REPORT GENERATION FOR MULTI DR SDS
+    @api.multi
+    def get_datetime(self):
+        _logger.info(datetime.datetime.now())
+        return datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')
+
+    @api.multi
+    def get_record(self, loop):
+        self.ensure_one()
+        if loop.has_key(self.location_dest_id.id):
+            loop[self.location_dest_id.id].append(self)
+        else:
+            loop.update({self.location_dest_id.id: [self]})
+        return loop
+
+    @api.multi
+    def get_location_destination_group(self,location_id):
+
+        stock_location_obj = self.env['stock.location'].browse([location_id])
+        if stock_location_obj:
+            return stock_location_obj
+        return False        
+
+    #END FOR REPORT GENERATION FOR MULTI DR SDS
+
     @api.multi
     def force_assign(self):
         super(Picking, self).force_assign()
         if self.origin:
             operation_id = self.env['stock.pack.operation'].search([('picking_id', '=', self.id)])
-            _logger.info(operation_id)
+            # _logger.info(operation_id)
 
             for operation in operation_id:
                 lot = self.env['stock.production.lot'].search([('name', '=', self.origin),('product_id', '=', operation.product_id.id)])
@@ -113,41 +138,6 @@ class Picking(models.Model):
                             cust_location_id = self.env['stock.location'].search([('name', '=', 'Customers')], limit=1)
                             if pick.location_dest_id.id == cust_location_id.id:
                                 repair.write({'ri_ret_to_cust_date': time.strftime('%m/%d/%y %H:%M:%S')})
-
-                                # Move = self.env['stock.move']
-                                # moves = self.env['stock.move']
-                                # for operation in repair.operations:
-                                #     move = Move.create({
-                                #         'name': operation.name,
-                                #         'product_id': operation.product_id.id,
-                                #         'restrict_lot_id': operation.lot_id.id,
-                                #         'product_uom_qty': operation.product_uom_qty,
-                                #         'product_uom': operation.product_uom.id,
-                                #         'partner_id': repair.address_id.id,
-                                #         'location_id': operation.location_id.id,
-                                #         'location_dest_id': operation.location_dest_id.id,
-                                #     })
-                                #     moves |= move
-                                #     operation.write({'move_id': move.id, 'state': 'done'})
-                                # moves.action_done()
-
-                                # move = Move.create({
-                                #     'name': repair.name,
-                                #     'product_id': repair.product_id.id,
-                                #     'product_uom': repair.product_uom.id or repair.product_id.uom_id.id,
-                                #     'product_uom_qty': repair.product_qty,
-                                #     'partner_id': repair.address_id.id,
-                                #     'location_id': repair.location_id.id,
-                                #     'location_dest_id': repair.location_dest_id.id,
-                                #     'restrict_lot_id': repair.lot_id.id,
-                                # })
-                                # moves |= move
-                                # moves.action_done()
-
-                                # if move:
-                                #     repair.sudo().write({
-                                #         'move_id': move.id
-                                #     })
 
                         # RECEIVE OUT
                         else:

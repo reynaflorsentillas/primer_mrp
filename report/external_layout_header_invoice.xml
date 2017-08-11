@@ -27,7 +27,7 @@
             -->
             
             <xpath expr="//div[@name='invoice_address']" position="before">
-                <div class="col-xs-5" groups="primer_extend_security_access.fpt_group_repair_central_warehouse,primer_extend_security_access.fpt_group_repair_store_manager,primer_extend_security_access.fpt_group_repair_central_warehouse">
+                <div class="col-xs-5" groups="primer_extend_security_access.fpt_group_repair_central_warehouse,primer_extend_security_access.fpt_group_repair_store_manager,primer_extend_security_access.fpt_group_repair_user">
                     <strong t-if="o.partner_shipping_id != o.partner_id">Shipping address:</strong>
                     <div t-field="o.partner_id" t-options="{&quot;widget&quot;: &quot;contact&quot;, &quot;fields&quot;: [&quot;address&quot;, &quot;name&quot;], &quot;no_marker&quot;: True}"/>
                     <span t-if="o.partner_id.vat">TIN: <span t-field="o.partner_id.vat"/></span>
@@ -39,13 +39,13 @@
 
             <xpath expr="//h2" position="replace">
                 <h2>
-                    <span t-if="o.type == 'out_invoice' and (o.state == 'open' or o.state == 'paid')" style="font-size:85%;">Invoice</span>
-                    <span t-if="o.type == 'out_invoice' and o.state == 'proforma2'" style="font-size:85%;">PRO-FORMA</span>
-                    <span t-if="o.type == 'out_invoice' and o.state == 'draft'" style="font-size:85%;">Draft Invoice</span>
-                    <span t-if="o.type == 'out_invoice' and o.state == 'cancel'" style="font-size:85%;">Cancelled Invoice</span>
-                    <span t-if="o.type == 'out_refund'" style="font-size:85%;">Refund</span>
-                    <span t-if="o.type == 'in_refund'" style="font-size:85%;">Vendor Refund</span>
-                    <span t-if="o.type == 'in_invoice'" style="font-size:85%;">Vendor Bill</span>
+                    <span t-if="o.type == 'out_invoice' and (o.state == 'open' or o.state == 'paid')" style="font-size:75%;">Invoice</span>
+                    <span t-if="o.type == 'out_invoice' and o.state == 'proforma2'" style="font-size:75%;">PRO-FORMA</span>
+                    <span t-if="o.type == 'out_invoice' and o.state == 'draft'" style="font-size:75%;">Draft Invoice</span>
+                    <span t-if="o.type == 'out_invoice' and o.state == 'cancel'" style="font-size:75%;">Cancelled Invoice</span>
+                    <span t-if="o.type == 'out_refund'" style="font-size:75%;">Refund</span>
+                    <span t-if="o.type == 'in_refund'" style="font-size:75%;">Vendor Refund</span>
+                    <span t-if="o.type == 'in_invoice'" style="font-size:75%;">Vendor Bill</span>
                     <span t-field="o.number"/>
                 </h2>                
             </xpath>
@@ -79,9 +79,9 @@
             -->
             <xpath expr="//h2" position="replace">
                 <h2>
-                    <span style="font-size:85%;">Duplicate</span>
-                    <span t-if="o.type == 'out_refund'" style="font-size:85%;">refund</span>
-                    <span t-if="o.type == 'out_invoice'" style="font-size:85%;">invoice</span>
+                    <span style="font-size:75%;">Duplicate</span>
+                    <span t-if="o.type == 'out_refund'" style="font-size:75%;">refund</span>
+                    <span t-if="o.type == 'out_invoice'" style="font-size:75%;">invoice</span>
                     <span t-field="o.number"/>
                 </h2>
             </xpath>

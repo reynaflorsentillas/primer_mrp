@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <report
+            string="Multi-Item DR"
+            id="action_report_multi_item_dr"
+            model="stock.picking"
+            report_type="qweb-pdf"
+            name="primer_mrp.report_multi_item_dr"
+            file="primer_mrp.report_multi_item_dr"
+        />
+
+
+
+	    <template id="report_multi_item_dr">
+	    	<t t-set= "loop" t-value="{}" />
+	    	<t t-foreach="docs" t-as="doc">
+	        	<t t-set= "loop" t-value="doc.get_record(loop)" />
+            	        
+	    	</t>	
+	    	<t t-foreach="loop" t-as="doc_loop">	    		
+		        <t t-call="report.html_container">
+		            <t t-call="report.external_layout">		            	
+		                <div class="page">
+		                	<t t-set="location_destination" t-value="loop[doc_loop][0].get_location_destination_group(doc_loop)"/>
+                            <div class="row">
+                                <div class="col-xs-6">
+                                    <div t-if="location_destination.partner_id">
+                                        <span><strong>Destination:</strong></span>
+                                        <div t-field="location_destination.partner_id" t-options="{'widget': 'contact', 'fields': ['address', 'name', 'phone', 'fax'], 'no_marker': True, 'phone_icons': True}"/>
+                                    </div>
+                                </div>
+                            </div>
+                            <br/>		     
+                            <t t-set="location_destination_other_param" t-value="loop[doc_loop][0]"/>           			                	
+                            <table class="table table-condensed" t-if="location_destination_other_param">
+	                            <thead>
+	                                <tr>
+	                                    
+	                                    <th><strong>Printed Date</strong></th>
+	                                    <th><strong>Del. From</strong></th>
+	                                    <th><strong>Del. To</strong></th>
+	                                </tr>
+	                            </thead>  
+	                           	<tbody> 
+		                            <tr>
+		                                <td>
+		                                	<p  t-esc="location_destination_other_param.get_datetime()"/>
+		                                   
+		                                </td>
+		                                <td>
+		                                	<span t-field="location_destination_other_param.location_id"/>
+		                                </td>
+		                                <td>
+		                                    <span t-field="location_destination_other_param.location_dest_id"/>
+		                                </td>
+		                            </tr>	                           	                         	
+	                           	</tbody>
+                            </table>
+                            <br/>
+                            <table class="table table-condensed">
+	                            <thead>
+	                                <tr>
+	                                    
+	                                    <th><strong>Repair Item</strong></th>
+	                                    <th><strong>Repair Order</strong></th>
+	                                    <th><strong>Qty</strong></th>
+	                                    <th><strong>Reference Number</strong></th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>
+				                	<t t-foreach="loop[doc_loop]" t-as="doc_loop_detail">
+				                		<t t-if="doc_loop_detail.state=='confirmed'">
+					                		<t t-set="pack_operation_ids" t-value="doc_loop_detail.pack_operation_ids"/>
+					                		<t t-foreach="pack_operation_ids" t-as="pack_operation">
+				                                <tr>
+				                                    <td t-if="pack_operation.product_id">
+				                                        <span t-field="pack_operation.product_id"/>
+				                                    </td>
+				                                    <td>
+				                                    	<table class="table table-condensed" t-if="pack_operation.pack_lot_ids">
+				                                    		
+				                                            <tr t-foreach="pack_operation.pack_lot_ids" t-as="packlot">
+				                                                <td>
+				                                                    <span t-field="packlot.lot_id"/>
+				                                                    <t t-if="not packlot.lot_id">
+				                                                        <span t-field="packlot.lot_name"/>
+				                                                    </t>
+				                                                </td>
+				                                            </tr>
+				                                    	</table>
+				                                    </td>
+				                                    <td>
+				                                        <span t-field="pack_operation.product_qty"/>
+				                                    </td>
+				                                    <td>
+				                                        <span t-field="pack_operation.picking_id.name"/>
+				                                    </td>
+				                                </tr>			                			
+					                		</t>
+				                		</t>
+				                	</t>
+                            	</tbody>
+                            </table>
+
+
+
+		                </div>
+		                
+		            </t>
+		         </t>		    		
+	    	</t>
+	    </template>        
+    </data>
+</odoo>
+

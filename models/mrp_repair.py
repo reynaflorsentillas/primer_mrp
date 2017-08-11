@@ -419,7 +419,6 @@ class PrimerRepair(models.Model):
             # PROCESS RESERVED SPARE PARTS
             moves = self.env['stock.move']
             for operation in repair.operations:
-                _logger.info('BLEH')
                 reserve_move = self.env['stock.move'].search([('origin', '=', repair.name),('product_id', '=', operation.product_id.id),('state', '=', 'assigned')])
                 if reserve_move:
                     _logger.info(reserve_move.product_id.name)
