@@ -7,3 +7,4 @@ access_primer_mrp_mrp_repair_routing_manager,primer_mrp.mrp_repair.routing.manag
 access_primer_mrp_mrp_repair_routing_user,primer_mrp.mrp_repair.routing.user,model_mrp_repair_routing,stock.group_stock_user,1,1,1,0
 access_primer_mrp_mrp_repair_hr_job_user,primer_mrp.mrp_repair.hr.job.user,hr.model_hr_job,base.group_user,1,0,0,0
 access_primer_mrp_mrp_repair_stock_reservation_all,primer_mrp.mrp.repair.stock.reservation.all,model_mrp_repair_stock_reservation,,1,1,1,0
+access_primer_mrp_mrp_product_branded_collection_user,product.product.branded.collections.user,primer_mrp.model_product_product_branded_collections,stock.group_stock_user,1,1,1,1

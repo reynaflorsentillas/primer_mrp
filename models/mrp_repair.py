@@ -22,8 +22,8 @@ class PrimerRepair(models.Model):
     def _filter_repair_tech(self):
         # FILTER REPAIR TECH WITH JOB AND DEPARTMENT
         job_id = self.env['hr.job'].search([('name', '=', 'Repair Tech')])
-        department_id = self.env['hr.department'].search([('name', '=', self.env.user.sale_team_id.name)])
-        return [('job_id', '=', job_id.id),('department_id', '=', department_id.id)]
+        # department_id = self.env['hr.department'].search([('name', '=', self.env.user.sale_team_id.name)])
+        return [('job_id', '=', job_id.id)]
 
 
     # OVERRIDE FIELDS
@@ -295,7 +295,7 @@ class PrimerRepair(models.Model):
             # CREATE TRANSFER ORDER UPON CONFIRMATION OF REPAIR
             for operation in repair.operations:
                 if operation.product_id.categ_id.name == 'Spare Part':
-                    if operation.qty_available <= 0:
+                    if operation.qty_available <= 0 or operation.qty_available < operation.product_uom_qty:
                         raise UserError('Cannot confirm repair. Not enough available stock for spare part: ' + str(operation.product_id.name))
             
             self.create_transfer_order()
@@ -412,20 +412,11 @@ class PrimerRepair(models.Model):
             for operation in repair.operations:
                 if operation.location_id != repair.location_id:
                     raise UserError('Cannot end repair. Source Location of repair cost must be equal to the current location of repair order.')
-                # if operation.product_id.categ_id.name == 'Spare Part':
-                #     if operation.qty_available <= 0:
-                #         raise UserError('Cannot end repair. Not enough available stock for spare part: ' + str(operation.product_id.name))
 
             # PROCESS RESERVED SPARE PARTS
-            moves = self.env['stock.move']
             for operation in repair.operations:
-                reserve_move = self.env['stock.move'].search([('origin', '=', repair.name),('product_id', '=', operation.product_id.id),('state', '=', 'assigned')])
-                if reserve_move:
-                    _logger.info(reserve_move.product_id.name)
-                moves |= reserve_move
-                # operation.write({'move_id': reserve_move.id, 'state': 'done'})
+                operation.move_id.action_done()
                 operation.write({'state': 'done'})
-            moves.action_done()
             
             end_date = time.strftime('%m/%d/%y %H:%M:%S')
             repair.write({'ro_ended_date': end_date})
@@ -665,9 +656,37 @@ class PrimerRepairLine(models.Model):
             price = pricelist.get_product_price(model_product_product, self.product_uom_qty, partner)
             vals['price_unit'] = price
 
+        # RESERVE STOCK IF NEW ITEM IS ADDED AFTER REPAIR WAS CONFIRMEDs
+        # repair_id = self.env['mrp.repair'].search([('id', '=', vals['repair_id'])])
+        # product_id = self.env['product.product'].search([('id', '=', vals['product_id'])])        
+        # if repair_id.state == 'confirmed' or repair_id.state == 'under_repair':
+        #     if product_id.categ_id.name == 'Spare Part':
+        #         Reserve = self.env['mrp.repair.stock.reservation'].create({
+        #             'name': vals['name'],
+        #             'origin': repair_id.name,
+        #             'restrict_lot_id': vals['lot_id'],
+        #             'product_id': product_id.id,
+        #             'product_uom_qty': vals['product_uom_qty'],
+        #             'product_uom': vals['product_uom'],
+        #             'partner_id': repair_id.address_id.id,
+        #             'location_id': vals['location_id'],
+        #             'location_dest_id': vals['location_dest_id'],
+        #         })
+        #         Reserve.reserve()
+        #         vals['move_id'] = Reserve.move_id.id
+
         res = super(PrimerRepairLine, self).create(vals)
         return res
 
+    @api.multi
+    def unlink(self):
+        for operation in self:
+            if operation.repair_id.state == 'done':
+                raise UserError(_("Cannot force cancel completed repairs."))
+            if operation.repair_id.invoiced == True:
+                raise UserError(_('Repair order is already invoiced.'))
+            operation.move_id.action_cancel()
+        return super(PrimerRepairLine, self).unlink()
 
 class PrimerRepairStatus(models.Model):
     _name = 'mrp.repair.status'

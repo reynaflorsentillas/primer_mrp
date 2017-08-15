@@ -23,6 +23,19 @@ class Picking(models.Model):
         return datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')
 
     @api.multi
+    def get_serial_lot_thru_ro(self, move_line):
+        self.ensure_one()
+        _logger.info(move_line.picking_id)
+        if move_line.picking_id.origin:
+            _logger.info(move_line.picking_id.origin)
+            repair_order_obj =self.env['mrp.repair'].search([('name', '=', move_line.picking_id.origin)])
+            if repair_order_obj:
+                _logger.info('BOOKK')
+                _logger.info(repair_order_obj.lot_id.name)
+                return repair_order_obj and repair_order_obj.lot_id and repair_order_obj.lot_id.name or False
+        return False
+
+    @api.multi
     def get_record(self, loop):
         self.ensure_one()
         if loop.has_key(self.location_dest_id.id):

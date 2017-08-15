@@ -71,34 +71,57 @@
 	                            <tbody>
 				                	<t t-foreach="loop[doc_loop]" t-as="doc_loop_detail">
 				                		<t t-if="doc_loop_detail.state=='confirmed'">
+
 					                		<t t-set="pack_operation_ids" t-value="doc_loop_detail.pack_operation_ids"/>
-					                		<t t-foreach="pack_operation_ids" t-as="pack_operation">
-				                                <tr>
-				                                    <td t-if="pack_operation.product_id">
-				                                        <span t-field="pack_operation.product_id"/>
-				                                    </td>
-				                                    <td>
-				                                    	<table class="table table-condensed" t-if="pack_operation.pack_lot_ids">
-				                                    		
-				                                            <tr t-foreach="pack_operation.pack_lot_ids" t-as="packlot">
-				                                                <td>
-				                                                    <span t-field="packlot.lot_id"/>
-				                                                    <t t-if="not packlot.lot_id">
-				                                                        <span t-field="packlot.lot_name"/>
-				                                                    </t>
-				                                                </td>
-				                                            </tr>
-				                                    	</table>
-				                                    </td>
-				                                    <td>
-				                                        <span t-field="pack_operation.product_qty"/>
-				                                    </td>
-				                                    <td>
-				                                        <span t-field="pack_operation.picking_id.name"/>
-				                                    </td>
-				                                </tr>			                			
+					                		<t t-set="move_lines" t-value="doc_loop_detail.move_lines"/>
+
+					                		<t t-if="pack_operation_ids">
+						                		<t t-foreach="pack_operation_ids" t-as="pack_operation">
+					                                <tr>
+					                                    <td t-if="pack_operation.product_id">
+					                                        <span t-field="pack_operation.product_id"/>
+					                                    </td>
+					                                    <td>
+					                                    	<table class="table table-condensed" t-if="pack_operation.pack_lot_ids">
+					                                    		
+					                                            <tr t-foreach="pack_operation.pack_lot_ids" t-as="packlot">
+					                                                <td>
+					                                                    <span t-field="packlot.lot_id"/>
+					                                                    <t t-if="not packlot.lot_id">
+					                                                        <span t-field="packlot.lot_name"/>
+					                                                    </t>
+					                                                </td>
+					                                            </tr>
+					                                    	</table>
+					                                    </td>
+					                                    <td>
+					                                        <span t-field="pack_operation.product_qty"/>
+					                                    </td>
+					                                    <td>
+					                                        <span t-field="pack_operation.picking_id.name"/>
+					                                    </td>
+					                                </tr>			                			
+						                		</t><!-- t-foreach pack_operation_ids -->					                			
+					                		</t> <!-- t-if pack_operation_ids -->
+					                		<t t-if="not pack_operation_ids">
+												<t t-foreach="move_lines" t-as="move_line">
+					                                <tr>
+					                                    <td t-if="move_line.product_id">
+					                                        <span t-field="move_line.product_id"/>
+					                                    </td>
+					                                    <td>
+					                                    	<span t-esc="doc_loop_detail.get_serial_lot_thru_ro(move_line)"/>
+					                                    </td>
+					                                    <td>
+					                                        <span t-field="move_line.product_uom_qty"/>
+					                                    </td>
+					                                    <td>
+					                                        <span t-field="move_line.picking_id.name"/>
+					                                    </td>
+					                                </tr>			                															
+												</t>				                			
 					                		</t>
-				                		</t>
+				                		</t> <!-- State Confirmed -->
 				                	</t>
                             	</tbody>
                             </table>
@@ -113,4 +136,3 @@
 	    </template>        
     </data>
 </odoo>
-

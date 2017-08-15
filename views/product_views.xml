@@ -28,4 +28,16 @@
         </xpath>
     </field>
 </record>
+
+<record id="product_template_only_form_view_extend" model="ir.ui.view">
+    <field name="name">product.template.product.form.extend</field>
+    <field name="model">product.template</field>
+    <field name="inherit_id" ref="product.product_template_only_form_view"/>
+    <field name="arch" type="xml">
+        <xpath expr="//h1[1]" position="after">
+            <label class="oe_edit_only" for="name" string="Branded/Collection"/>
+            <field name="branded_collection_ids" placeholder="Branded and Collection..." widget="many2many_tags" help="Product Brands or Collection Tags"/>
+        </xpath>
+    </field>
+</record>
 </odoo>

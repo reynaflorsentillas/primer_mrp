@@ -140,20 +140,23 @@
                     <attribute name="invisible">1</attribute>
                 </xpath>
 
-                <!--<xpath expr="//field[@name='operations']/tree//field[@name='location_id']" position="attributes">
-                    <attribute name="attrs">{'readonly': [('state', 'in', ['draft','cancel'])]}</attribute>
-                    <attribute name="attrs">{'readonly': [('state', '=', 'draft')]}</attribute>
-                    <attribute name="states">{'confirmed': [('readonly', False)]}</attribute>
-                </xpath>-->
+                <xpath expr="//field[@name='operations']/tree//field[@name='location_id']" position="attributes">
+                    <attribute name="string">Src Loc</attribute>
+                </xpath>
 
                 <xpath expr="//field[@name='operations']/tree//field[@name='location_id']" position="after">
-                    <field name="qty_on_hand" />
+                    <field name="qty_on_hand" string="Qty Oh" digits="(14, 0)" />
                     <field name="qty_reserved" invisible="1" />
-                    <field name="qty_available" />
+                    <field name="qty_available" string="Qty Av" digits="(14, 0)" />
                 </xpath>
 
                 <xpath expr="//field[@name='operations']/tree//field[@name='location_dest_id']" position="attributes">
                     <attribute name="invisible">1</attribute>
+                </xpath>
+
+                <xpath expr="//field[@name='operations']/tree//field[@name='product_uom_qty']" position="attributes">
+                    <attribute name="string">Qty Rq</attribute>
+                    <attribute name="digits">(14, 0)</attribute>
                 </xpath>
 
                 <xpath expr="//field[@name='operations']/tree//field[@name='to_invoice']" position="attributes">

@@ -7,14 +7,14 @@ class hr_employee(models.Model):
     def name_get(self):
         result = []
         context = self._context or {}
-        if context.get('repair_tech', False):
-            for record in self:
-                department = record.department_id.name
-                if department:
-                    result.append((record.id, record.name + " - " + department))
-                else:
+        # if context.get('repair_tech', False):
+        for record in self:
+            department = record.department_id.name
+            if department:
+                result.append((record.id, record.name + " - " + department))
+            else:
                     result.append((record.id, record.name))
-        else:
-            for record in self:
-                result.append((record.id, record.name))
+        # else:
+        #     for record in self:
+        #         result.append((record.id, record.name))
         return result

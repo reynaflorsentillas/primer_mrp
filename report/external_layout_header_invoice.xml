@@ -6,14 +6,35 @@
             I WILL CHECK THE ERROR FURTHER
          -->
         <!--
-        <template id="external_layout_repair_invoice" inherit_id="primer_mrp.external_layout" primary="True">
-            <xpath expr="//t[@t-call='report.external_layout_header']" position="attributes">
+        <template id="external_layout_repair_invoice" inherit_id="primer_mrp.external_layout_repair">
+            <xpath expr="//t[@t-call='primer_mrp.external_layout_header_repair']" position="attributes">
                 <attribute name="t-call">primer_mrp.external_layout_header_repair_invoice</attribute>
             </xpath>            
         </template>
+        -->
+        <!--
+        <template id="external_layout_header_repair_invoice" inherit_id="primer_mrp.external_layout_header_repair">
+            COMMEMT HERE
+            <xpath expr="//div[@class='row']/div[@class='col-xs-3'][1]" position="replace"/>             
+            <xpath expr="//div[@name='location_address']" position="replace"/>
 
-        <template id="external_layout_header_repair_invoice" inherit_id="report.external_layout_header" primary="True">
-            <xpath expr="//div[@class='row']/div[@t-field='company.rml_header1']" position="replace"/>
+
+            <xpath expr="//div[@class='col-xs-5'][1]" position="replace">
+                <div class="col-xs-5">
+                    <strong t-if="o.partner_shipping_id != o.partner_id">Customer:</strong>
+                    <div t-field="o.partner_id" t-options="{&quot;widget&quot;: &quot;contact&quot;, &quot;fields&quot;: [&quot;address&quot;, &quot;name&quot;], &quot;no_marker&quot;: True}"/>
+                    <span t-if="o.partner_id.vat">TIN: <span t-field="o.partner_id.vat"/></span>
+                </div>                
+            </xpath>
+            
+            <xpath expr="//div[@name='location_address']" position="replace">
+                <div class="col-xs-6" name="location_address">
+                    <span t-field="company.partner_id" t-field-options="{&quot;widget&quot;: &quot;contact&quot;, &quot;fields&quot;: [&quot;address&quot;, &quot;name&quot;], &quot;no_marker&quot;: true}"
+                         />
+                    
+                </div>
+            </xpath>
+            
         </template>
         -->
 
@@ -28,7 +49,7 @@
             
             <xpath expr="//div[@name='invoice_address']" position="before">
                 <div class="col-xs-5" groups="primer_extend_security_access.fpt_group_repair_central_warehouse,primer_extend_security_access.fpt_group_repair_store_manager,primer_extend_security_access.fpt_group_repair_user">
-                    <strong t-if="o.partner_shipping_id != o.partner_id">Shipping address:</strong>
+                    <strong t-if="o.partner_shipping_id != o.partner_id">Customer:</strong>
                     <div t-field="o.partner_id" t-options="{&quot;widget&quot;: &quot;contact&quot;, &quot;fields&quot;: [&quot;address&quot;, &quot;name&quot;], &quot;no_marker&quot;: True}"/>
                     <span t-if="o.partner_id.vat">TIN: <span t-field="o.partner_id.vat"/></span>
                 </div>
