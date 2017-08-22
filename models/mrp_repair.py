@@ -50,25 +50,29 @@ class PrimerRepair(models.Model):
         ('exstore', 'Ex-Store')
     ], string='Repair Location', readonly=True, compute='_compute_repair_location', store=True)
     # RO Dates
-    ro_confirmed_date = fields.Datetime(string='Confirmed Date', readonly=True)
-    ro_started_date = fields.Datetime(string='Started Date', readonly=True)
-    ro_ended_date = fields.Datetime(string='Ended Date', readonly=True)
-    ro_promised_date = fields.Datetime(string='Promised Date')
+    ro_confirmed_date = fields.Datetime(string='Repair Order Confirmation', readonly=True)
+    ro_started_date = fields.Datetime(string='Repair Start', readonly=True)
+    ro_ended_date = fields.Datetime(string='Repair Complete', readonly=True)
+    ro_promised_date = fields.Datetime(string='Customer Promised Date')
     # RI Dates
-    ri_recd_from_cust_date = fields.Datetime(string='Received from Customer', readonly=True)
-    ri_sent_out_date = fields.Datetime(string='Sent Out Date', readonly=True)
-    ri_recd_out_date = fields.Datetime(string='Received Out Date', readonly=True)
-    ri_sent_back_date = fields.Datetime(string='Sent Back Date', readonly=True)
-    ri_recd_back_date = fields.Datetime(string='Received Back Date', readonly=True)
-    ri_ret_to_cust_date = fields.Datetime(string='Return to Customer', readonly=True)
+    ri_recd_from_cust_date = fields.Datetime(string='Received from Customer Date', readonly=True)
+    ri_sent_out_date = fields.Datetime(string='Outsource Dispatch Date', readonly=True)
+    ri_recd_out_date = fields.Datetime(string='Outsource Received Date', readonly=True)
+    ri_sent_back_date = fields.Datetime(string='Return Dispatch Date', readonly=True)
+    ri_recd_back_date = fields.Datetime(string='Return Received Date', readonly=True)
+    ri_ret_to_cust_date = fields.Datetime(string='Returned to Customer Date', readonly=True)
     # Calculated Elapsed Time
-    total_system_time = fields.Float(string='Total System Time', readonly=True, compute='_compute_total_system_time')
+    total_system_time = fields.Char(string='Total System Time', readonly=True, compute='_compute_total_system_time')
     total_outsourced_time = fields.Float(string='Total Outsourced Time', readonly=True, compute='_compute_total_outsourced_time')
+    total_outsourced_time_disp = fields.Char(string='Total Outsourced Time Display', readonly=True, compute='_compute_total_outsourced_time')
     total_outsourced_service_time = fields.Float(string='Total Outsourced Service Time', readonly=True, compute='_compute_total_outsourced_service_time')
-    total_outsourced_wait_time = fields.Float(string='Total Outsourced Wait Time', readonly=True, compute="_compute_total_outsourced_wait_time")
-    performance_time = fields.Float(string='Performance Time', readonly=True, compute='_compute_performance_time')
-    store_disp_reaction_time = fields.Float(string='Store Dispatch Reaction Time', readonly=True, compute='_compute_store_disp_reaction_time')
-    store_custret_reaction_time = fields.Float(string='Store Customer Return Reaction Time', readonly=True, compute='_compute_store_custret_reaction_time')
+    total_outsourced_service_time_disp = fields.Char(string='Total Outsourced Service Time Display', readonly=True, compute='_compute_total_outsourced_service_time')
+    total_outsourced_wait_time = fields.Char(string='Total Outsourced Wait Time', readonly=True, compute="_compute_total_outsourced_wait_time")
+    performance_time = fields.Char(string='Performance Time', readonly=True, compute='_compute_performance_time')
+    store_disp_reaction_time = fields.Char(string='Store Dispatch Reaction Time', readonly=True, compute='_compute_store_disp_reaction_time')
+    store_custret_reaction_time = fields.Char(string='Store Customer Return Time', readonly=True, compute='_compute_store_custret_reaction_time')
+    repair_time = fields.Char(string='Repair Time', compute='_compute_repair_time')
+    repair_setup_time = fields.Char(string='Repair Setup Time', compute='_compute_repair_setup_time')
 
     @api.onchange('location_id')
     def onchange_location_id(self):
@@ -127,11 +131,15 @@ class PrimerRepair(models.Model):
             if record.ri_ret_to_cust_date and record.ri_recd_from_cust_date:
                 timeDiff = datetime.strptime(record.ri_ret_to_cust_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ri_recd_from_cust_date, '%Y-%m-%d %H:%M:%S')
 
-                # days, seconds = timeDiff.days, timeDiff.seconds
-                # hours = days * 24 + seconds // 3600
-                # minutes = (seconds % 3600) // 60
-                # seconds = seconds % 60
-                record.total_system_time = timeDiff.seconds
+                days, seconds = timeDiff.days, timeDiff.seconds
+                hours = days * 24 + seconds // 3600
+                minutes = (seconds % 3600) // 60
+                seconds = seconds % 60
+
+                # record.total_system_time = timeDiff.seconds
+                record.total_system_time = '{0} Day(s) {1} Hour(s) {2} Minute(s)'.format(str(days), str(hours), str(minutes))
+            else:
+                record.total_system_time = '0 Day(s) 0 Hour(s) 0 Minute(s)'
 
     # COMPUTE TOTAL OUTSOURCED TIME
     @api.multi
@@ -141,11 +149,16 @@ class PrimerRepair(models.Model):
             if record.ri_recd_back_date and record.ri_sent_out_date:
                 timeDiff = datetime.strptime(record.ri_recd_back_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ri_sent_out_date, '%Y-%m-%d %H:%M:%S')
 
-                # days, seconds = timeDiff.days, timeDiff.seconds
-                # hours = days * 24 + seconds // 3600
-                # minutes = (seconds % 3600) // 60
-                # seconds = seconds % 60
+                days, seconds = timeDiff.days, timeDiff.seconds
+                hours = days * 24 + seconds // 3600
+                minutes = (seconds % 3600) // 60
+                seconds = seconds % 60
+
                 record.total_outsourced_time = timeDiff.seconds
+                record.total_outsourced_time_disp = '{0} Day(s) {1} Hour(s) {2} Minute(s)'.format(str(days), str(hours), str(minutes))
+            else:
+                record.total_outsourced_time = 0
+                record.total_outsourced_time_disp = '0 Day(s) 0 Hour(s) 0 Minute(s)'
 
     # COMPUTE TOTAL OUTSOURCED SERVICE TIME
     @api.multi
@@ -155,11 +168,16 @@ class PrimerRepair(models.Model):
             if record.ri_sent_back_date and record.ri_recd_out_date:
                 timeDiff = datetime.strptime(record.ri_sent_back_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ri_recd_out_date, '%Y-%m-%d %H:%M:%S')
 
-                # days, seconds = timeDiff.days, timeDiff.seconds
-                # hours = days * 24 + seconds // 3600
-                # minutes = (seconds % 3600) // 60
-                # seconds = seconds % 60
+                days, seconds = timeDiff.days, timeDiff.seconds
+                hours = days * 24 + seconds // 3600
+                minutes = (seconds % 3600) // 60
+                seconds = seconds % 60
+
                 record.total_outsourced_service_time = timeDiff.seconds
+                record.total_outsourced_service_time_disp = '{0} Day(s) {1} Hour(s) {2} Minute(s)'.format(str(days), str(hours), str(minutes))
+            else:
+                record.total_outsourced_service_time = 0
+                record.total_outsourced_service_time_disp = '0 Day(s) 0 Hour(s) 0 Minute(s)'
 
     # # COMPUTE TOTAL OUTSOURCED WAIT TIME
     @api.multi
@@ -169,12 +187,15 @@ class PrimerRepair(models.Model):
             if record.total_outsourced_time and record.total_outsourced_service_time:
                 timeDiff = record.total_outsourced_time - record.total_outsourced_service_time
 
-                # days, seconds = timeDiff.days, timeDiff.seconds
-                # hours = days * 24 + seconds // 3600
-                # minutes = (seconds % 3600) // 60
-                # seconds = seconds % 60
+                days, seconds = timeDiff.days, timeDiff.seconds
+                hours = days * 24 + seconds // 3600
+                minutes = (seconds % 3600) // 60
+                seconds = seconds % 60
 
-                record.total_outsourced_wait_time = timeDiff
+                # record.total_outsourced_wait_time = timeDiff
+                record.total_outsourced_wait_time = '{0} Day(s) {1} Hour(s) {2} Minute(s)'.format(str(days), str(hours), str(minutes))
+            else:
+                record.total_outsourced_wait_time = '0 Day(s) 0 Hour(s) 0 Minute(s)'
 
     # COMPUTE PERFORMANCE TIME
     @api.multi
@@ -184,11 +205,15 @@ class PrimerRepair(models.Model):
             if record.ri_ret_to_cust_date and record.ro_promised_date:
                 timeDiff = datetime.strptime(record.ri_ret_to_cust_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ro_promised_date, '%Y-%m-%d %H:%M:%S')
                 
-                # days, seconds = timeDiff.days, timeDiff.seconds
-                # hours = days * 24 + seconds // 3600
-                # minutes = (seconds % 3600) // 60
-                # seconds = seconds % 60
-                record.performance_time = timeDiff.seconds
+                days, seconds = timeDiff.days, timeDiff.seconds
+                hours = days * 24 + seconds // 3600
+                minutes = (seconds % 3600) // 60
+                seconds = seconds % 60
+
+                # record.performance_time = timeDiff.seconds
+                record.performance_time = '{0} Day(s) {1} Hour(s) {2} Minute(s)'.format(str(days), str(hours), str(minutes))
+            else:
+                record.performance_time = '0 Day(s) 0 Hour(s) 0 Minute(s)'
 
     # COMPUTE STORE DISP REACTION TIME
     @api.multi
@@ -198,11 +223,15 @@ class PrimerRepair(models.Model):
             if record.ri_sent_out_date and record.ri_recd_from_cust_date:
                 timeDiff = datetime.strptime(record.ri_sent_out_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ri_recd_from_cust_date, '%Y-%m-%d %H:%M:%S')
                 
-                # days, seconds = timeDiff.days, timeDiff.seconds
-                # hours = days * 24 + seconds // 3600
-                # minutes = (seconds % 3600) // 60
-                # seconds = seconds % 60
-                record.store_disp_reaction_time = timeDiff.seconds
+                days, seconds = timeDiff.days, timeDiff.seconds
+                hours = days * 24 + seconds // 3600
+                minutes = (seconds % 3600) // 60
+                seconds = seconds % 60
+
+                # record.store_disp_reaction_time = timeDiff.seconds
+                record.store_disp_reaction_time = '{0} Day(s) {1} Hour(s) {2} Minute(s)'.format(str(days), str(hours), str(minutes))
+            else:
+                record.store_disp_reaction_time = '0 Day(s) 0 Hour(s) 0 Minute(s)'
 
     # COMPUTE STORE CUSTOMER RETURN REACTION TIME
     @api.multi
@@ -213,20 +242,62 @@ class PrimerRepair(models.Model):
                 if record.ri_ret_to_cust_date and record.ro_ended_date:
                     timeDiff = datetime.strptime(record.ri_ret_to_cust_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ro_ended_date, '%Y-%m-%d %H:%M:%S')
                     
-                    # days, seconds = timeDiff.days, timeDiff.seconds
-                    # hours = days * 24 + seconds // 3600
-                    # minutes = (seconds % 3600) // 60
-                    # seconds = seconds % 60
-                    record.store_custret_reaction_time = timeDiff.seconds
+                    days, seconds = timeDiff.days, timeDiff.seconds
+                    hours = days * 24 + seconds // 3600
+                    minutes = (seconds % 3600) // 60
+                    seconds = seconds % 60
+
+                    # record.store_custret_reaction_time = timeDiff.seconds
+                    record.store_custret_reaction_time = '{0} Day(s) {1} Hour(s) {2} Minute(s)'.format(str(days), str(hours), str(minutes))
+                else:
+                    record.store_custret_reaction_time = '0 Day(s) 0 Hour(s) 0 Minute(s)'
             else:
                 if record.ri_ret_to_cust_date and record.ri_recd_back_date:
                     timeDiff = datetime.strptime(record.ri_ret_to_cust_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ri_recd_back_date, '%Y-%m-%d %H:%M:%S')
                     
-                    # days, seconds = timeDiff.days, timeDiff.seconds
-                    # hours = days * 24 + seconds // 3600
-                    # minutes = (seconds % 3600) // 60
-                    # seconds = seconds % 60
-                    record.store_custret_reaction_time = timeDiff.seconds
+                    days, seconds = timeDiff.days, timeDiff.seconds
+                    hours = days * 24 + seconds // 3600
+                    minutes = (seconds % 3600) // 60
+                    seconds = seconds % 60
+
+                    # record.store_custret_reaction_time = timeDiff.seconds
+                    record.store_custret_reaction_time = '{0} Day(s) {1} Hour(s) {2} Minute(s)'.format(str(days), str(hours), str(minutes))
+                else:
+                    record.store_custret_reaction_time = '0 Day(s) 0 Hour(s) 0 Minute(s)'
+
+    # COMPUTE REPAIR TIME
+    @api.multi
+    @api.depends('ro_started_date','ro_ended_date')
+    def _compute_repair_time(self):
+        for record in self:
+            if record.ro_started_date and record.ro_ended_date:
+                timeDiff = datetime.strptime(record.ro_ended_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ro_started_date, '%Y-%m-%d %H:%M:%S')
+                
+                days, seconds = timeDiff.days, timeDiff.seconds
+                hours = days * 24 + seconds // 3600
+                minutes = (seconds % 3600) // 60
+                seconds = seconds % 60
+
+                record.repair_time = '{0} Day(s) {1} Hour(s) {2} Minute(s)'.format(str(days), str(hours), str(minutes))
+            else:
+                record.repair_time = '0 Day(s) 0 Hour(s) 0 Minute(s)'
+
+    # COMPUTE REPAIR SETUP TIME
+    @api.multi
+    @api.depends('ro_started_date','ro_confirmed_date')
+    def _compute_repair_setup_time(self):
+        for record in self:
+            if record.ro_started_date and record.ro_confirmed_date:
+                timeDiff = datetime.strptime(record.ro_started_date, '%Y-%m-%d %H:%M:%S') - datetime.strptime(record.ro_confirmed_date, '%Y-%m-%d %H:%M:%S')
+                
+                days, seconds = timeDiff.days, timeDiff.seconds
+                hours = days * 24 + seconds // 3600
+                minutes = (seconds % 3600) // 60
+                seconds = seconds % 60
+
+                record.repair_setup_time =  '{0} Day(s) {1} Hour(s) {2} Minute(s)'.format(str(days), str(hours), str(minutes))
+            else:
+                record.repair_setup_time = '0 Day(s) 0 Hour(s) 0 Minute(s)'
 
     # Add 5 business days to transfer order scheduled date
     def set_transfer_scheduled_date(self, from_date, add_days):

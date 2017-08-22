@@ -82,7 +82,7 @@
                     <page string="Status Log">
                         <field name="status_history" readonly="1" />
                     </page>
-                    <page string="Statistics" invisible="1">
+                    <page string="Statistics" invisible="0" groups="base.group_system">
                         <group>
                             <field name="last_route" invisible="1"/>
                             <field name="last_route_non_cust" invisible="1"/>
@@ -103,12 +103,16 @@
                         </group>
                         <group string="Calculated Elapsed Times">
                             <field name="total_system_time" />
-                            <field name="total_outsourced_time" />
-                            <field name="total_outsourced_service_time" />
+                            <field name="total_outsourced_time" invisible="1" />
+                            <field name="total_outsourced_time_disp" />
+                            <field name="total_outsourced_service_time" invisible="1" />
+                            <field name="total_outsourced_service_time_disp" />
                             <field name="total_outsourced_wait_time" />
                             <field name="performance_time" />
                             <field name="store_disp_reaction_time" />
                             <field name="store_custret_reaction_time" />
+                            <field name="repair_time" />
+                            <field name="repair_setup_time" />
                         </group>
                     </page>
                 </notebook>
