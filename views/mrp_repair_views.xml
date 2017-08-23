@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+        <!-- EXTEND REPAIR FILTER ADDED BY SDS 22082017 -->
+        <record id="view_repair_order_form_filter" model="ir.ui.view">
+            <field name="name">mrp.repair.select.extend</field>
+            <field name="model">mrp.repair</field>
+            <field name="inherit_id" ref="mrp_repair.view_repair_order_form_filter" />
+            <field name="arch" type="xml">
+                <field name="partner_id" position="after">
+                    <field name="branded_collection_ids"/>
+                </field>
+            </field>
+        </record>
+
         <!-- EXTEND REPAIR TREE -->
         <record id="primer_view_repair_order_tree" model="ir.ui.view">
             <field name="name">primer.mrp.repair.tree</field>
@@ -38,6 +50,10 @@
                     <attribute name="domain">[('type', 'in', ['product', 'consu']),('categ_id.name', 'in', ['Luggages', 'Bags']),('tracking', '=', 'serial')]</attribute>
                 </xpath>
 
+                <xpath expr="//field[@name='product_id']" position="after">
+                    <field name="branded_collection_ids" widget="many2many_tags" readonly="1" string=" " />
+                </xpath>
+
                 <xpath expr="//form/sheet/group/group/label[1]" position="attributes">
                     <attribute name="invisible">1</attribute>
                 </xpath>
@@ -55,7 +71,7 @@
                 </xpath>
 
                 <xpath expr="//field[@name='lot_id']" position="attributes">
-                    <attribute name="string">Repaired Serial No.</attribute>
+                    <attribute name="string">Item Serial No.</attribute>
                     <attribute name="attrs">{'readonly': [('state', '=', 'done')]}</attribute>
                 </xpath>
 
@@ -68,7 +84,7 @@
 
                     <!-- ATTRS BY SDS  statusm ro_promised_date 08/06/17-->
                     <field name="status" attrs="{'readonly': [('is_readonly_ro', '=', True)]}"/>
-                    <field name="ro_promised_date" attrs="{'readonly': [('is_readonly_ro', '=', True)]}"/>
+                    <field name="ro_promised_date" attrs="{'readonly': [('is_readonly_ro', '=', True)]}" widget="date" />
                     <field name="ro_store_location" invisible="1" attrs="{'readonly': [('is_readonly_ro', '=', True)]}"/>
                 </xpath>
 
@@ -77,6 +93,10 @@
                     <!-- ATTRS BY SDS  routing ('is_readonly_ro', '=', True) 08/05/17-->
                     <field name="routing" attrs="{'invisible': ['|','|','|',('is_readonly_ro', '=', True),('is_in_customer', '=', True),('state', '=', 'draft'),('state', '=', 'cancel')]}" />
                 </xpath>
+
+                <!--<field name="product_id" position="after">
+                    <field name="branded_collection_ids" widget="many2many_tags" />
+                </field>-->
                 
                 <notebook position="inside">
                     <page string="Status Log">
@@ -136,6 +156,12 @@
                     <attribute name="domain">[('categ_id.name', 'in', ['Spare Part', 'Service'])]</attribute>
                 </xpath>
 
+                <xpath expr="//field[@name='operations']/tree//field[@name='tax_id']" position="attributes">
+                    <!--<attribute name="options">{'no_create_edit': True}</attribute>-->
+                    <attribute name="readonly">1</attribute>
+                    <!--<attribute name="delete">false</attribute>-->
+                </xpath>
+
                 <xpath expr="//field[@name='operations']/tree//field[@name='type']" position="attributes">
                     <attribute name="invisible">1</attribute>
                 </xpath>
@@ -152,6 +178,7 @@
                     <field name="qty_on_hand" string="Qty Oh" digits="(14, 0)" />
                     <field name="qty_reserved" invisible="1" />
                     <field name="qty_available" string="Qty Av" digits="(14, 0)" />
+                    <field name="default_tax_id" widget="many2many_tags" invisible="1" />
                 </xpath>
 
                 <xpath expr="//field[@name='operations']/tree//field[@name='location_dest_id']" position="attributes">
