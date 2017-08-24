@@ -24,7 +24,7 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'mrp_repair', 'stock', 'primer_extend_security_access'],
+    'depends': ['base', 'mrp_repair', 'stock', 'account','primer_extend_security_access'],
 
     # always loaded
     'data': [
@@ -46,7 +46,7 @@
         'views/stock_reserve_views.xml',
         'report/mrp_repair_template_repair_order.xml',
         'report/external_layout_header_repair.xml',
-        'report/external_layout_header_invoice.xml',
+        #'report/external_layout_header_invoice.xml',
         'report/stock_report_view.xml',
     ],
     # only loaded in demonstration mode

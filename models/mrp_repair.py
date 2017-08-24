@@ -364,15 +364,10 @@ class PrimerRepair(models.Model):
         for repair in self:
             if not repair.ro_promised_date:
                 raise UserError('Promised date must be entered before confirming repair.')
-
-            # CREATE STOCK RESERVATION FOR AVAILABLE SPAREPARTS UPON CONFIRMATION OF REPAIR
-            # for operation in repair.operations:
-            #     if operation.product_id.categ_id.name == 'Spare Part':
-            #         if operation.qty_available >= operation.product_uom_qty:
-            #             self.create_repair_stock_reservation()
             
             # CREATE TRANSFER ORDER UPON CONFIRMATION OF REPAIR
             self.create_transfer_order()
+            # CREATE STOCK RESERVATION FOR AVAILABLE SPAREPARTS UPON CONFIRMATION OF REPAIR
             self.create_repair_stock_reservation()
             confirm_date = time.strftime('%m/%d/%y %H:%M:%S')
             repair.write({'ro_confirmed_date': confirm_date})
@@ -709,19 +704,16 @@ class PrimerRepairLine(models.Model):
                 price = pricelist.get_product_price(model_product_product, product_oum_qty, partner)
                 vals['price_unit'] = price
 
-        # SET TAX 
-
-
-        # RESERVATION MGT AFTER REPIR CONFIRMATION
+        # RESERVATION MGT AFTER REPAIR CONFIRMATION (CONFIRMED AND UNDER REPAIR)
         for record in self:
-            if record.repair_id.state == 'confirmed':
+            if record.repair_id.state == 'confirmed' or record.repair_id.state == 'under_repair':
                 if record.product_id.categ_id.name == 'Spare Part':
                     if record.qty_available <= 0 or record.qty_available < record.product_uom_qty:
                         raise UserError('Cannot update spare part reservation. Not enough available stock for spare part: ' + str(self.product_id.name))
             
                     location_id = vals.get('location_id')
                     if not location_id:
-                        location_id = record.location_id
+                        location_id = record.location_id.id
                     
                     product_uom_qty = vals.get('product_uom_qty')
                     if not product_uom_qty:
@@ -745,17 +737,10 @@ class PrimerRepairLine(models.Model):
             price = pricelist.get_product_price(model_product_product, self.product_uom_qty, partner)
             vals['price_unit'] = price
 
-        # SET TAX 
-        # partner = self.repair_id.partner_id
-        # pricelist = self.repair_id.pricelist_id
-
-        # if partner and self.product_id:
-        #     vals['tax_id'] = partner.property_account_position_id.map_tax(self.product_id.taxes_id, self.product_id, partner).ids
-
-        # RESERVE STOCK IF NEW ITEM IS ADDED AFTER REPAIR WAS CONFIRMEDs
+        # RESERVE STOCK IF NEW ITEM IS ADDED AFTER REPAIR WAS CONFIRMED (CONFIRMED AND UNDER REPAIR)
         repair_id = self.env['mrp.repair'].search([('id', '=', vals['repair_id'])])
         product_id = self.env['product.product'].search([('id', '=', vals['product_id'])])        
-        if repair_id.state == 'confirmed':
+        if repair_id.state == 'confirmed' or repair_id.state == 'under_repair':
             if product_id.categ_id.name == 'Spare Part':
                 Reserve = self.env['mrp.repair.stock.reservation'].create({
                     'name': vals['name'],

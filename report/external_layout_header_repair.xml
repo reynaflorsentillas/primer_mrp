@@ -40,6 +40,10 @@
             <xpath expr="//t[@t-call='report.external_layout']" position="attributes">
                 <attribute name="t-call">primer_mrp.external_layout_repair</attribute>
             </xpath>
+            <xpath expr="//div[@class='oe_structure'][1]" position="after">
+                <br/>
+                <br/>
+            </xpath>            
             <xpath expr="//div[@class='col-xs-5 col-xs-offset-1'][1]" position="replace"/>
             <xpath expr="//div[@class='row'][1]" position="replace"/>
             <!--

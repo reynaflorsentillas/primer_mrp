@@ -80,11 +80,11 @@
             </xpath>
             <!-- REMOVE THE DESCRIPTION  HEADER --> 
             <xpath expr="//div[@class='row mt32 mb32']/div[@t-if='o.name']" position="replace">
-                <div class="col-xs-2" t-if="o.is_invoice_in_repairs()">
+                <div class="col-xs-4" t-if="o.is_invoice_in_repairs()">
                     <strong>Repair Item:</strong>
                     <p t-esc="o.get_repair_item_name()"/>
                 </div>                
-                <div class="col-xs-2" t-if="not o.is_invoice_in_repairs()">
+                <div class="col-xs-4" t-if="not o.is_invoice_in_repairs()">
                     <strong>Description:</strong>
                     <p t-esc="o.name"/>
                 </div>                                

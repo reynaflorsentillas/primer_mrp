@@ -5,6 +5,9 @@ import time
 import logging
 _logger = logging.getLogger(__name__)
 
+from itertools import groupby
+import datetime
+
 class PickingType(models.Model):
     _inherit = 'stock.picking.type'
 
@@ -56,7 +59,7 @@ class Picking(models.Model):
 
     @api.multi
     def force_assign(self):
-        super(Picking, self).force_assign()
+        res = super(Picking, self).force_assign()
         if self.origin:
             operation_id = self.env['stock.pack.operation'].search([('picking_id', '=', self.id)])
             # _logger.info(operation_id)
@@ -77,11 +80,11 @@ class Picking(models.Model):
                 operation.write({
                     'qty_done' : 1,
                 })
-        return True
+        return res
 
     @api.multi
     def do_new_transfer(self):
-        super(Picking, self).do_new_transfer()
+        res = super(Picking, self).do_new_transfer()
         for pick in self:
             origin = pick.origin
             is_return = False
@@ -170,5 +173,5 @@ class Picking(models.Model):
                     # DATE RECEIVED BACK IN STORE
                     # _logger.info('DATE RECEIVED BACK IN STORE')
                     repair.write({'ri_recd_back_date': time.strftime('%m/%d/%y %H:%M:%S')})
-        return
+        return res
             
