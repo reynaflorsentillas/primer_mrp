@@ -77,6 +77,7 @@
 
                 <xpath expr="//field[@name='partner_id']" position="attributes">
                     <attribute name="attrs">{'readonly':[('state', '=', 'done')],'required':[('invoice_method','!=','none')]}</attribute>
+                    <attribute name="string">Customer</attribute>
                 </xpath>
 
                 <xpath expr="//field[@name='guarantee_limit']" position="replace">

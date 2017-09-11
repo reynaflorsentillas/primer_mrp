@@ -705,24 +705,28 @@ class PrimerRepairLine(models.Model):
                 vals['price_unit'] = price
 
         # RESERVATION MGT AFTER REPAIR CONFIRMATION (CONFIRMED AND UNDER REPAIR)
-        for record in self:
-            if record.repair_id.state == 'confirmed' or record.repair_id.state == 'under_repair':
-                if record.product_id.categ_id.name == 'Spare Part':
-                    if record.qty_available <= 0 or record.qty_available < record.product_uom_qty:
-                        raise UserError('Cannot update spare part reservation. Not enough available stock for spare part: ' + str(self.product_id.name))
-            
-                    location_id = vals.get('location_id')
-                    if not location_id:
-                        location_id = record.location_id.id
+        state = vals.get('state')
+        if not state:
+            for record in self:
+                if record.repair_id.state == 'confirmed' or record.repair_id.state == 'under_repair':
+                    if record.product_id.categ_id.name == 'Spare Part':
+                        location_id = vals.get('location_id')
+                        if not location_id:
+                            location_id = record.location_id.id
                     
-                    product_uom_qty = vals.get('product_uom_qty')
-                    if not product_uom_qty:
-                        product_uom_qty = record.product_uom_qty
+                        product_uom_qty = vals.get('product_uom_qty')
+                        if not product_uom_qty:
+                            product_uom_qty = record.product_uom_qty
 
-                    record.move_id.write({'location_id': location_id})
-                    record.move_id.write({'product_uom_qty': product_uom_qty})
-                    record.move_id.action_confirm()
-                    record.move_id.action_assign()
+                        total_available_qty = record.qty_available + record.qty_reserved
+
+                        if total_available_qty <= 0 or total_available_qty < product_uom_qty:
+                            raise UserError('Cannot update spare part reservation. Not enough available stock for spare part: ' + str(self.product_id.name))
+
+                        record.move_id.write({'location_id': location_id})
+                        record.move_id.write({'product_uom_qty': product_uom_qty})
+                        record.move_id.action_confirm()
+                        record.move_id.action_assign()
 
         return super(PrimerRepairLine, self).write(vals)
 
