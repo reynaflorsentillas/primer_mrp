@@ -4,20 +4,24 @@
         <template id="external_layout_repair" inherit_id="report.external_layout" primary="True">
             <xpath expr="//t[@t-call='report.external_layout_header']" position="attributes">
                 <attribute name="t-call">primer_mrp.external_layout_header_repair</attribute>
-            </xpath>            
+            </xpath>  
+            <xpath expr="//t[@t-call='report.external_layout_footer']" position="attributes">
+                <attribute name="t-call">primer_mrp.external_layout_footer_repair</attribute>
+            </xpath>             
+
         </template>
 
         <template id="external_layout_header_repair" inherit_id="report.external_layout_header" primary="True">
             <xpath expr="//div[@t-field='company.rml_header1']" position="replace"/>
             <xpath expr="//div[@name='company_address']" position="replace">
-                <div class="col-xs-6" name="location_address">
+                <div class="col-xs-6" name="location_address" style="font-size: 88%;">
                     <span t-field="o.ro_store_location.partner_id" t-field-options="{&quot;widget&quot;: &quot;contact&quot;, &quot;fields&quot;: [&quot;address&quot;, &quot;name&quot;], &quot;no_marker&quot;: true}"
                          />
                     <!--  style="border-bottom: 1px solid black; display:inline-block;"   style="margin-left:20px;"-->
                 </div>
             </xpath>
             <xpath expr="//div[@name='location_address']" position="after">
-                <div class="col-xs-5">
+                <div class="col-xs-5" style="font-size: 80%;">
                     <strong t-if="o.address_id == o.partner_invoice_id">Customer</strong>
                     <div t-if="o.partner_invoice_id">
                         <strong t-if="o.address_id != o.partner_invoice_id">Invoice address: </strong>
@@ -35,15 +39,19 @@
         </template>
 
 
+        <template id="external_layout_footer_repair" inherit_id="report.external_layout_footer" primary="True">
+            <xpath expr="//li[@t-if='company.website'][1]" position="replace"/>    
+            <xpath expr="//li[@t-if='company.website and company.email or company.website and company.fax or company.website and company.phone'][1]" position="replace"/>   
+                 
+        </template>
+
+
+
         <!-- OVERRIDE THE REPAIR ORDER REPORT TO CHANGED THE EXTERNAL LAYOUT OR THE HEADER FORM -->
         <template id="report_mrprepairorder_layout" inherit_id="mrp_repair.report_mrprepairorder" name="Repair Order Quotation Layout Override">
             <xpath expr="//t[@t-call='report.external_layout']" position="attributes">
                 <attribute name="t-call">primer_mrp.external_layout_repair</attribute>
             </xpath>
-            <xpath expr="//div[@class='oe_structure'][1]" position="after">
-                <br/>
-                <br/>
-            </xpath>            
             <xpath expr="//div[@class='col-xs-5 col-xs-offset-1'][1]" position="replace"/>
             <xpath expr="//div[@class='row'][1]" position="replace"/>
             <!--

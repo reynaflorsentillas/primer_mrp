@@ -43,7 +43,7 @@
                 </xpath>
 
                 <xpath expr="//field[@name='name']" position="attributes">
-                    <attribute name="attrs">{'readonly': [('state', '=', 'done')]}</attribute>
+                    <attribute name="attrs">{'readonly': [('state', 'in', ['done', 'cancel'])]}</attribute>
                 </xpath>
 
                 <xpath expr="//field[@name='product_id']" position="attributes">
@@ -72,21 +72,21 @@
 
                 <xpath expr="//field[@name='lot_id']" position="attributes">
                     <attribute name="string">Item Serial No.</attribute>
-                    <attribute name="attrs">{'readonly': [('state', '=', 'done')]}</attribute>
+                    <attribute name="attrs">{'readonly': [('state', 'in', ['done', 'cancel'])]}</attribute>
                 </xpath>
 
                 <xpath expr="//field[@name='partner_id']" position="attributes">
-                    <attribute name="attrs">{'readonly':[('state', '=', 'done')],'required':[('invoice_method','!=','none')]}</attribute>
-                    <attribute name="string">Customer</attribute>
+                    <attribute name="attrs">{'readonly':[('state', 'in', ['done', 'cancel'])],'required':[('invoice_method','!=','none')]}</attribute>
+			<attribute name="string">Customer</attribute>
                 </xpath>
 
                 <xpath expr="//field[@name='guarantee_limit']" position="replace">
                     <field name="valid_warranty" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
 
                     <!-- ATTRS BY SDS  statusm ro_promised_date 08/06/17-->
-                    <field name="status" attrs="{'readonly': [('is_readonly_ro', '=', True)]}"/>
-                    <field name="ro_promised_date" attrs="{'readonly': [('is_readonly_ro', '=', True)]}" widget="date" />
-                    <field name="ro_store_location" invisible="1" attrs="{'readonly': [('is_readonly_ro', '=', True)]}"/>
+                    <field name="status" attrs="{'readonly': ['|','|',('is_readonly_ro', '=', True),('is_in_customer', '=', True),('state', '=', 'cancel')]}"/>
+                    <field name="ro_promised_date" attrs="{'readonly': ['|',('is_readonly_ro', '=', True),('state', 'in', ['cancel', 'done'])]}" widget="date" />
+                    <field name="ro_store_location" invisible="1" attrs="{'readonly': ['|',('is_readonly_ro', '=', True),('state', 'in', ['cancel', 'done'])]}"/>
                 </xpath>
 
                 <xpath expr="//field[@name='location_dest_id']" position="after">
@@ -204,7 +204,7 @@
                 </xpath>
 
                 <xpath expr="//field[@name='pricelist_id']" position="attributes">
-                    <attribute name="attrs">{'readonly': [('state', '=', 'done')]}</attribute>
+                    <attribute name="attrs">{'readonly': [('state', 'in', ['done', 'cancel'])]}</attribute>
                 </xpath>
                 
             </field>
@@ -234,7 +234,7 @@
                 <xpath expr="//field[@name='sale_team_id']" position="after">
                     <!-- ADDED attrs by SDS -->
                     <!-- ADDED attrs by SDS 08/06/2017 is_readonly_ro-->
-                    <field name="repair_tech" context="{'repair_tech': True}" attrs="{'readonly': [('is_readonly_ro', '=', True)]}"/>
+                    <field name="repair_tech" context="{'repair_tech': True}" attrs="{'readonly': ['|',('is_readonly_ro', '=', True),('state', 'in', ['cancel', 'done'])]}"/>
                 </xpath>
 
                 <xpath expr="//field[@name='sale_team_id']" position="attributes">

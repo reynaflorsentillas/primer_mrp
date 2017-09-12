@@ -5,26 +5,33 @@
         <xpath expr="//div[@class='row mt32 mb32']/div[4]/strong" position="replace">       
             <strong>RO Date:</strong>
         </xpath>
+        <!-- Remove Operation Line label-->
+        <xpath expr="//tbody/t[@t-if='o.operations' ]/tr[1]" position="replace"/> 
+
+
+        <!-- Adding Font Size Table -->
+        <xpath expr="//table[@class='table table-condensed'][1]" position="attributes">
+             <attribute name="style">"font-size: 80%;margin-bottom:0px;"</attribute>
+        </xpath>        
+
+        <!-- ADJUSTING THE ROW MARGINS Product Repair-->
+        <xpath expr="//div[@class='row mt32 mb32'][1]" position="attributes">
+             <attribute name="style">margin-bottom:0px!important;margin-top:20px!important;"</attribute>
+        </xpath>        
+
 
         <!--  REMOVING OF LOT NUMBER -->
         <xpath expr="//div[@class='row mt32 mb32']/div[@groups='stock.group_production_lot']" position="replace"/>      
         <!-- REMOVING OF TAX -->
         <xpath expr="//div[@class='row']/div[@class='col-xs-4 pull-right']/table[@class='table table-condensed']/tr[2]" position="replace"/>
-        
+        <!-- REMOVING OF  Total Without Taxes-->
 
-        <xpath expr="//h2[1]" position="replace">
-                <h2>
-                    <span t-if="o.state != 'draft'" style="font-size: 70%;">Repair Order #:</span>
-                    <span t-if="o.state == 'draft'" style="font-size: 70%;">Repair Quotation #:</span>
-                    <span t-field="o.name" style="font-size: 70%;"/>
-                </h2>
-        </xpath>
-            
+        <xpath expr="//div[@class='row']/div[@class='col-xs-4 pull-right']/table[@class='table table-condensed']/tr[1]" position="replace"/> 
         <xpath expr="//td/p" position="replace">
             <span t-field="line.name"/>
         </xpath>
 
-        <xpath expr="//tr[@class='border-black'][2]/td/strong" position="replace">
+        <xpath expr="//tr[@class='border-black'][1]/td/strong" position="replace">
              <strong>*Total</strong>
         </xpath>
 
@@ -36,7 +43,7 @@
 
             <t t-if="o.quotation_notes">
                 <div class="row">
-                    <div class="col-xs-4 border-black" style="font-size: 83%;">
+                    <div class="col-xs-6 border-black" style="font-size: 83%;">
                         <b>Repair Details / Special Instructions: </b>
                     </div>
                 </div>
@@ -64,7 +71,10 @@
                 <br/>    
                 -->
             </t>
-   
+            <t t-set="is_page_break" t-value="doc.pageBreak()"/>
+            <t t-if="is_page_break">
+                <p style="page-break-before:always;"/>
+            </t>   
 
             <p style="font-size: 62%;"><b>Terms and Conditions:</b></p>
             <p style="font-size: 60%;">
@@ -81,7 +91,9 @@
                 4. Above due date may change at the discretion of the company depending on the availability of spare parts. Furthermore, LTS will not be liable for any delay in due date due to the lack of spare parts. The customer may opt to claim the item at any time should he/she withdraws or discontinues repair.
             </p>
 
-            <br/>
+            <!--
+            <p style="page-break-before:always;"/>
+        -->
             <br/>
             <br/>
 
@@ -126,6 +138,7 @@
                     Signature / Date                
                 </div>            
             </div>      
+
 
         </xpath>    
     </template>

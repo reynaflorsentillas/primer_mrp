@@ -7,25 +7,8 @@ _logger = logging.getLogger(__name__)
 class ReturnPicking(models.TransientModel):
     _inherit = 'stock.return.picking'
 
-    # @api.multi
-    # def _create_returns(self):
-    #     super(ReturnPicking, self)._create_returns()
-    #     for wizard in self:
-    #         picking = self.env['stock.picking'].browse(self.env.context.get('active_id'))
-    #         if picking:
-    #             repair = self.env['mrp.repair'].search([('name', '=', picking.origin)])
-    #             if repair:
-    #                 repair.write({'ri_sent_back_date': time.strftime('%m/%d/%y %H:%M:%S')})
-
     @api.multi
     def create_returns(self):
-        # for wizard in self:
-        #     picking = self.env['stock.picking'].browse(self.env.context.get('active_id'))
-        #     if picking:
-        #         repair = self.env['mrp.repair'].search([('name', '=', picking.origin)])
-        #         if repair:
-        #             repair.write({'ri_sent_back_date': time.strftime('%m/%d/%y %H:%M:%S')})
-        # super(ReturnPicking, self).create_returns()
         for wizard in self:
             new_picking_id, pick_type_id = wizard._create_returns()
             _logger.info('BANG!')

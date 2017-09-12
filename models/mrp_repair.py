@@ -10,6 +10,27 @@ _logger = logging.getLogger(__name__)
 
 class PrimerRepair(models.Model):
     _inherit = 'mrp.repair'
+    
+    #For Report Purpose to Check if Report has quotation and Number of Operation Lines, this will be use in the basis of Page Break
+    @api.multi
+    def pageBreak(self):
+        NUMBER_CHARACTER_PER_PAGE = 105
+        new_line = 0
+        self.ensure_one()
+        if self.operations:
+            if len(self.operations) >=9 and self.quotation_notes:
+                #Check first if theres a new Line Char
+                for char in self.quotation_notes:
+                    if char == '\n':
+                       new_line +=1
+                    if new_line >=9:
+                        return True
+                if  len(self.quotation_notes)/NUMBER_CHARACTER_PER_PAGE >=10:
+                    return True
+            elif len(self.operations) >=10:
+                return True
+
+        return False
 
     @api.model
     def _new_default_stock_location(self):
@@ -710,23 +731,25 @@ class PrimerRepairLine(models.Model):
             for record in self:
                 if record.repair_id.state == 'confirmed' or record.repair_id.state == 'under_repair':
                     if record.product_id.categ_id.name == 'Spare Part':
-                        location_id = vals.get('location_id')
-                        if not location_id:
-                            location_id = record.location_id.id
+                        if record.move_id:
+                            location_id = vals.get('location_id')
+                            if not location_id:
+                                location_id = record.location_id.id
                     
-                        product_uom_qty = vals.get('product_uom_qty')
-                        if not product_uom_qty:
-                            product_uom_qty = record.product_uom_qty
+                            product_uom_qty = vals.get('product_uom_qty')
+                            if not product_uom_qty:
+                                product_uom_qty = record.product_uom_qty
 
-                        total_available_qty = record.qty_available + record.qty_reserved
+                            line_reserved_qty = record.move_id.product_uom_qty
+                            line_total_available_qty = record.qty_available + line_reserved_qty
 
-                        if total_available_qty <= 0 or total_available_qty < product_uom_qty:
-                            raise UserError('Cannot update spare part reservation. Not enough available stock for spare part: ' + str(self.product_id.name))
+                            if line_total_available_qty <= 0 or line_total_available_qty < product_uom_qty:
+                                raise UserError('Cannot update spare part reservation. Not enough available stock for spare part: ' + str(self.product_id.name))
 
-                        record.move_id.write({'location_id': location_id})
-                        record.move_id.write({'product_uom_qty': product_uom_qty})
-                        record.move_id.action_confirm()
-                        record.move_id.action_assign()
+                            record.move_id.write({'location_id': location_id})
+                            record.move_id.write({'product_uom_qty': product_uom_qty})
+                            record.move_id.action_confirm()
+                            record.move_id.action_assign()
 
         return super(PrimerRepairLine, self).write(vals)
 
@@ -746,6 +769,14 @@ class PrimerRepairLine(models.Model):
         product_id = self.env['product.product'].search([('id', '=', vals['product_id'])])        
         if repair_id.state == 'confirmed' or repair_id.state == 'under_repair':
             if product_id.categ_id.name == 'Spare Part':
+
+                # qty_available = self.qty_available
+                # _logger.info('BUANG')
+                # _logger.info(qty_available)
+
+                # if qty_available <= 0 or qty_available < vals['product_uom_qty']:
+                #     raise UserError('Cannot create spare part reservation. Not enough available stock for spare part: ' + str(product_id.name))
+                
                 Reserve = self.env['mrp.repair.stock.reservation'].create({
                     'name': vals['name'],
                     'origin': repair_id.name,
